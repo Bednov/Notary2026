@@ -122,7 +122,8 @@
   <header class="header-bar">
     <div class="brand-title" onclick="openRandomTask()">⚖️ Нотариус Pro 🔀</div>
     <div id="exam-timer-display">60:00</div>
-    <div style="display: flex; gap: 4px;">
+    <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+      <button id="sound-toggle-btn" class="pill-btn" onclick="AudioEngine.toggleMute()">🔊 Звук</button>
       <button class="pill-btn exam-btn" onclick="startOfficialExamMode()">⏱️ Билет (50+1)</button>
       <button class="pill-btn" onclick="openTopicsModal()">📚 Темы</button>
       <button class="pill-btn" onclick="resetFullState()" style="color: var(--error-red);">🗑️ Сброс</button>
@@ -171,15 +172,29 @@
 </div>
 
 <script>
+  // Параметры задержки автоматического перелистывания (в миллисекундах)
+  const AUTO_ADVANCE_DELAY_CORRECT = 350; // Пауза при правильном ответе
+  const AUTO_ADVANCE_DELAY_WRONG = 1500;  // Пауза при неверном ответе (чтобы успеть рассмотреть правильный вариант)
+
   const AudioEngine = {
     ctx: null,
+    isMuted: false,
     init() {
       if (!this.ctx) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) this.ctx = new AudioCtx();
       }
     },
+    toggleMute() {
+      this.isMuted = !this.isMuted;
+      const btn = document.getElementById('sound-toggle-btn');
+      if (btn) {
+        btn.innerText = this.isMuted ? "🔇 Без звука" : "🔊 Звук";
+      }
+      return this.isMuted;
+    },
     playCorrect() {
+      if (this.isMuted) return;
       try {
         this.init();
         if (!this.ctx) return;
@@ -196,6 +211,7 @@
       } catch(e) {}
     },
     playWrong() {
+      if (this.isMuted) return;
       try {
         this.init();
         if (!this.ctx) return;
@@ -333,7 +349,6 @@
     if (el) el.innerText = `Начислено: ${points} б.`;
   }
 
-  // Парсер тегового формата из README.md (взят из вашего первого рабочего кода)
   function parseTextData(fullText) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     let parsedData = [];
@@ -388,7 +403,6 @@
     return parsedData;
   }
 
-  // Загрузка через README.md с поддержкой mammoth / text
   async function loadReadmeAndInit() {
     AppState.totalAnswered = SavedProgressState.totalAnswered;
     AppState.correctCount = SavedProgressState.correctCount;
@@ -406,7 +420,6 @@
           finishInitialization();
         })
         .catch(err => {
-          // Fallback в виде обычного текста
           response.text().then(text => {
             RAW_EXCEL_TESTS = parseTextData(text);
             finishInitialization();
@@ -538,14 +551,14 @@
         }
       }
 
-      setTimeout(navigateNext, 350);
+      setTimeout(navigateNext, AUTO_ADVANCE_DELAY_CORRECT);
     } else {
       if (!AppState.errorIds.includes(qId)) AppState.errorIds.push(qId);
       if (btnElement) btnElement.classList.add('wrong');
       if (allButtons[correctIdx]) allButtons[correctIdx].classList.add('correct');
       AudioEngine.playWrong();
       document.getElementById('legal-hint-card').style.display = 'block';
-      setTimeout(() => { isTransitioning = false; }, 600);
+      setTimeout(navigateNext, AUTO_ADVANCE_DELAY_WRONG);
     }
     syncStateToStorage();
   }
