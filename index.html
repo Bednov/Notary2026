@@ -2,12 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PRO Нотариус 2026</title>
-
-    <!-- Библиотека для чтения .docx файлов -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-
     <style>
         :root {
             --bg-color: #0b1329;
@@ -59,6 +56,7 @@
             background: #1e293b;
             font-size: 14px;
             color: var(--text-muted);
+            margin-bottom: 12px;
         }
 
         .q-card {
@@ -66,7 +64,6 @@
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 20px;
-            display: none;
         }
 
         .q-number {
@@ -82,7 +79,6 @@
             line-height: 1.4;
             margin-bottom: 20px;
             font-weight: 600;
-            white-space: pre-line;
         }
 
         .options-list {
@@ -146,13 +142,13 @@
 
         .file-label {
             display: inline-block;
-            background-color: var(--border-color);
-            color: var(--text-main);
+            background-color: var(--accent-blue);
+            color: white;
             padding: 10px 16px;
             border-radius: 6px;
             cursor: pointer;
-            margin-top: 10px;
             font-size: 14px;
+            font-weight: 600;
         }
         input[type="file"] { display: none; }
     </style>
@@ -162,16 +158,16 @@
 <div class="container">
     <div class="header-card">
         <h1>PRO Нотариус 2026</h1>
-        <div id="status" class="status">⏳ Подключение к файлу вопросов...</div>
-        <label for="fileInput" class="file-label" id="uploadBtn" style="display: none;">
-            📁 Выбрать файл .docx с устройства
+        <div id="status" class="status">✅ Приложение готово к работе</div>
+        <label for="fileInput" class="file-label">
+            📁 Загрузить файл с вопросами (.docx)
         </label>
         <input type="file" id="fileInput" accept=".docx">
     </div>
 
     <div id="quizContainer" class="q-card">
         <div id="qNumber" class="q-number">Вопрос 1</div>
-        <div id="qTitle" class="q-title">Загрузка...</div>
+        <div id="qTitle" class="q-title">Демо-вопрос: Что является предметом нотариальной деятельности?</div>
         <div id="options" class="options-list"></div>
         
         <div class="nav-btns">
@@ -182,95 +178,21 @@
 </div>
 
 <script>
-    // Варианты имен файла для обхода ошибок кодировки URL и разных названий
-    const FILE_VARIANTS = [
-        "Вопросы Эталона 2026.docx",
-        "Вопросы%20Эталона%202026.docx",
-        "Эталон Вопросы 2026.docx",
-        "Эталон%20Вопросы%202026.docx"
+    let questionsData = [
+        {
+            title: "Демо-вопрос: Что является предметом нотариальной деятельности?",
+            options: [
+                "А) Удостоверение бесспорных прав и фактов",
+                "Б) Рассмотрение уголовных дел",
+                "В) Регистрация юридических лиц в налоговой",
+                "Г) Вынесение судебных решений"
+            ],
+            correctIndex: 0
+        }
     ];
-
-    let questionsData = [];
     let currentIndex = 0;
 
     const statusEl = document.getElementById('status');
-    const uploadBtn = document.getElementById('uploadBtn');
-
-    async function loadRepositoryFile() {
-        for (let path of FILE_VARIANTS) {
-            try {
-                const response = await fetch(path, { cache: "no-store" });
-                if (response.ok) {
-                    const arrayBuffer = await response.arrayBuffer();
-                    statusEl.innerText = "⏳ Файл найден! Обработка вопросов...";
-                    parseDocx(arrayBuffer);
-                    return;
-                }
-            } catch (e) {
-                console.log("Пропуск пути:", path);
-            }
-        }
-
-        statusEl.innerHTML = `⚠️️ Файл не найден автоматически. Нажмите ниже, чтобы выбрать его:`;
-        uploadBtn.style.display = 'inline-block';
-    }
-
-    function parseDocx(arrayBuffer) {
-        mammoth.extractRawText({ arrayBuffer: arrayBuffer })
-            .then(result => {
-                buildQuizFromText(result.value);
-            })
-            .catch(err => {
-                console.error(err);
-                statusEl.innerText = "❌ Ошибка чтения .docx файла.";
-                uploadBtn.style.display = 'inline-block';
-            });
-    }
-
-    function buildQuizFromText(text) {
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        questionsData = [];
-        let currentQ = null;
-
-        lines.forEach(line => {
-            // Распознаем начало вопроса (1., 1), Вопрос 1 и т.д.)
-            if (/^\d+[\.\)]/.test(line) || /^Вопрос\s+\d+/i.test(line)) {
-                if (currentQ && currentQ.options.length > 0) {
-                    questionsData.push(currentQ);
-                }
-                currentQ = {
-                    title: line,
-                    options: [],
-                    correctIndex: 0
-                };
-            } else if (currentQ) {
-                // Распознаем варианты ответов
-                if (/^[а-гА-Гa-dA-D][\.\)]/.test(line) || /^[•\-–]/.test(line)) {
-                    currentQ.options.push(line);
-                } else {
-                    if (currentQ.options.length === 0) {
-                        currentQ.title += "\n" + line;
-                    } else {
-                        currentQ.options[currentQ.options.length - 1] += " " + line;
-                    }
-                }
-            }
-        });
-
-        if (currentQ && currentQ.options.length > 0) {
-            questionsData.push(currentQ);
-        }
-
-        if (questionsData.length > 0) {
-            statusEl.innerText = `✅ Загружено вопросов: ${questionsData.length}`;
-            statusEl.style.color = "#10b981";
-            document.getElementById('quizContainer').style.display = 'block';
-            showQuestion(0);
-        } else {
-            statusEl.innerText = "⚠️ Не удалось распарсить вопросы из файла.";
-            uploadBtn.style.display = 'inline-block';
-        }
-    }
 
     function showQuestion(index) {
         if (index < 0 || index >= questionsData.length) return;
@@ -309,4 +231,60 @@
         }
     }
 
-    function prevQuestion() { showQuestion
+    function prevQuestion() { showQuestion(currentIndex - 1); }
+    function nextQuestion() { showQuestion(currentIndex + 1); }
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        statusEl.innerText = "⏳ Чтение файла...";
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            mammoth.extractRawText({ arrayBuffer: e.target.result })
+                .then(result => {
+                    parseText(result.value);
+                })
+                .catch(err => {
+                    statusEl.innerText = "❌ Ошибка чтения .docx файла";
+                });
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function parseText(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const parsed = [];
+        let currentQ = null;
+
+        lines.forEach(line => {
+            if (/^\d+[\.\)]/.test(line) || /^Вопрос\s+\d+/i.test(line)) {
+                if (currentQ && currentQ.options.length > 0) parsed.push(currentQ);
+                currentQ = { title: line, options: [], correctIndex: 0 };
+            } else if (currentQ) {
+                if (/^[а-гА-Гa-dA-D][\.\)]/.test(line) || /^[•\-–]/.test(line)) {
+                    currentQ.options.push(line);
+                } else {
+                    if (currentQ.options.length === 0) currentQ.title += "\n" + line;
+                    else currentQ.options[currentQ.options.length - 1] += " " + line;
+                }
+            }
+        });
+        if (currentQ && currentQ.options.length > 0) parsed.push(currentQ);
+
+        if (parsed.length > 0) {
+            questionsData = parsed;
+            statusEl.innerText = `✅ Загружено вопросов из файла: ${parsed.length}`;
+            statusEl.style.color = "#10b981";
+            showQuestion(0);
+        } else {
+            statusEl.innerText = "⚠️ Не удалось распознать вопросы в файле";
+        }
+    }
+
+    // Инициализация при старте
+    showQuestion(0);
+</script>
+
+</body>
+</html>
