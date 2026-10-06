@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>PRO Нотариус 2026</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
     <style>
@@ -20,112 +17,183 @@
             --accent-cyan: #38bdf8;
             --success-green: #10b981;
             --error-red: #ef4444;
-            --warning-amber: #f59e0b;
             --border-color: #334155;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 720px;
             width: 100%;
         }
 
-        .card {
+        .header-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 16px;
         }
 
         h1 {
             color: var(--accent-cyan);
-            margin-top: 0;
+            margin: 0 0 10px 0;
+            font-size: 22px;
         }
 
         .status {
-            padding: 12px;
+            padding: 10px 14px;
             border-radius: 8px;
             background: #1e293b;
-            margin-bottom: 16px;
             font-size: 14px;
+            color: var(--text-muted);
         }
 
-        .btn {
+        .q-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: none;
+        }
+
+        .q-number {
+            font-size: 13px;
+            color: var(--accent-cyan);
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .q-title {
+            font-size: 17px;
+            line-height: 1.4;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .opt-btn {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 14px 16px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            line-height: 1.3;
+        }
+
+        .opt-btn:hover {
+            border-color: var(--accent-blue);
+            background: #27354d;
+        }
+
+        .opt-btn.correct {
+            background: rgba(16, 185, 129, 0.2) !important;
+            border-color: var(--success-green) !important;
+            color: #6ee7b7;
+        }
+
+        .opt-btn.wrong {
+            background: rgba(239, 68, 68, 0.2) !important;
+            border-color: var(--error-red) !important;
+            color: #fca5a5;
+        }
+
+        .nav-btns {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        .action-btn {
             background-color: var(--accent-blue);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 12px 20px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.2s;
+            font-weight: 600;
+            flex: 1;
         }
 
-        .btn:hover {
-            background-color: #1d4ed8;
-        }
-
-        input[type="file"] {
-            display: none;
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .file-label {
             display: inline-block;
             background-color: var(--border-color);
             color: var(--text-main);
-            padding: 10px 20px;
+            padding: 10px 16px;
             border-radius: 6px;
             cursor: pointer;
             margin-top: 10px;
+            font-size: 14px;
         }
+        input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="card">
+    <div class="header-card">
         <h1>PRO Нотариус 2026</h1>
         <div id="status" class="status">⏳ Считываем репозиторий GitHub...</div>
-        
         <label for="fileInput" class="file-label" id="uploadBtn" style="display: none;">
             📁 Выбрать файл .docx вручную
         </label>
-        <input type="file" id="fileInput" accept=".docx,.xlsx">
+        <input type="file" id="fileInput" accept=".docx">
     </div>
 
-    <div id="quizContainer" class="card" style="display: none;">
-        <h2 id="questionText">Вопрос загружается...</h2>
-        <div id="optionsContainer"></div>
+    <div id="quizContainer" class="q-card">
+        <div id="qNumber" class="q-number">Вопрос 1</div>
+        <div id="qTitle" class="q-title">Загрузка...</div>
+        <div id="options" class="options-list"></div>
+        
+        <div class="nav-btns">
+            <button id="prevBtn" class="action-btn" onclick="prevQuestion()" disabled>◄ Назад</button>
+            <button id="nextBtn" class="action-btn" onclick="nextQuestion()">Вперёд ►</button>
+        </div>
     </div>
 </div>
 
 <script>
     const TARGET_FILE = "Вопросы Эталона 2026.docx";
+    let questionsData = [];
+    let currentIndex = 0;
+
     const statusEl = document.getElementById('status');
     const uploadBtn = document.getElementById('uploadBtn');
 
-    // Автоматическая загрузка файла из репозитория
     async function loadRepositoryFile() {
-        const possiblePaths = [
+        const pathsToTry = [
             encodeURIComponent(TARGET_FILE),
-            TARGET_FILE,
-            "questions.docx"
+            TARGET_FILE
         ];
 
-        for (let path of possiblePaths) {
+        for (let path of pathsToTry) {
             try {
                 const response = await fetch(path);
                 if (response.ok) {
@@ -134,48 +202,120 @@
                     return;
                 }
             } catch (e) {
-                console.log("Пропуск пути:", path);
+                console.log("Ошибку при получении пути:", path);
             }
         }
 
-        statusEl.innerHTML = `⚠️ Файл <b>"${TARGET_FILE}"</b> не найден в репозитории.<br>Загрузите документ в GitHub или выберите его вручную ниже:`;
+        statusEl.innerHTML = `⚠️ Авто-загрузка не удалась. Выберите файл вручную:`;
         uploadBtn.style.display = 'inline-block';
     }
 
-    // Обработка docx через mammoth.js
     function parseDocx(arrayBuffer) {
-        statusEl.innerText = "⏳ Парсинг вопросов из документа...";
+        statusEl.innerText = "⏳ Распознавание вопросов из документа...";
         mammoth.extractRawText({ arrayBuffer: arrayBuffer })
             .then(result => {
-                const text = result.value;
-                if (text && text.trim().length > 0) {
-                    statusEl.innerText = "✅ Вопросы успешно загружены!";
-                    statusEl.style.color = "#10b981";
-                    // Здесь вызывается логика отрисовки вашего теста
-                    document.getElementById('quizContainer').style.display = 'block';
-                } else {
-                    statusEl.innerText = "❌ Не удалось прочитать текст из файла.";
-                }
+                buildQuizFromText(result.value);
             })
             .catch(err => {
                 console.error(err);
-                statusEl.innerText = "❌ Ошибка при обработке .docx файла.";
+                statusEl.innerText = "❌ Ошибка чтения .docx файла.";
             });
     }
 
-    // Ручной выбор файла
+    function buildQuizFromText(text) {
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        questionsData = [];
+        let currentQ = null;
+
+        lines.forEach(line => {
+            // Ищем начало вопроса (например "1. Вопрос..." или "Вопрос 1:")
+            if (/^\d+[\.\)]/.test(line) || /^Вопрос\s+\d+/i.test(line)) {
+                if (currentQ && currentQ.options.length > 0) {
+                    questionsData.push(currentQ);
+                }
+                currentQ = {
+                    title: line,
+                    options: [],
+                    correctIndex: 0
+                };
+            } else if (currentQ) {
+                // Если строка похожа на вариант ответа
+                if (/^[а-гА-Гa-dA-D][\.\)]/.test(line) || /^[•\-–]/.test(line)) {
+                    currentQ.options.push(line);
+                } else {
+                    // Дополнение к тексту вопроса
+                    if (currentQ.options.length === 0) {
+                        currentQ.title += " " + line;
+                    } else {
+                        currentQ.options[currentQ.options.length - 1] += " " + line;
+                    }
+                }
+            }
+        });
+
+        if (currentQ && currentQ.options.length > 0) {
+            questionsData.push(currentQ);
+        }
+
+        if (questionsData.length > 0) {
+            statusEl.innerText = `✅ Загружено вопросов: ${questionsData.length}`;
+            statusEl.style.color = "#10b981";
+            document.getElementById('quizContainer').style.display = 'block';
+            showQuestion(0);
+        } else {
+            statusEl.innerText = "⚠️ Не удалось автоматически разделить текст на вопросы. Используется ручной выбор.";
+            uploadBtn.style.display = 'inline-block';
+        }
+    }
+
+    function showQuestion(index) {
+        if (index < 0 || index >= questionsData.length) return;
+        currentIndex = index;
+        const q = questionsData[index];
+
+        document.getElementById('qNumber').innerText = `Вопрос ${index + 1} из ${questionsData.length}`;
+        document.getElementById('qTitle').innerText = q.title;
+
+        const optsContainer = document.getElementById('options');
+        optsContainer.innerHTML = '';
+
+        q.options.forEach((optText, optIdx) => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = optText;
+            btn.onclick = () => selectOption(btn, optIdx, q.correctIndex);
+            optsContainer.appendChild(btn);
+        });
+
+        document.getElementById('prevBtn').disabled = (index === 0);
+        document.getElementById('nextBtn').disabled = (index === questionsData.length - 1);
+    }
+
+    function selectOption(btn, selectedIdx, correctIdx) {
+        const allBtns = document.querySelectorAll('.opt-btn');
+        allBtns.forEach(b => b.onclick = null); // Блокируем повторные клики
+
+        if (selectedIdx === correctIdx) {
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            if (allBtns[correctIdx]) {
+                allBtns[correctIdx].classList.add('correct');
+            }
+        }
+    }
+
+    function prevQuestion() { showQuestion(currentIndex - 1); }
+    function nextQuestion() { showQuestion(currentIndex + 1); }
+
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
-        
         const reader = new FileReader();
-        reader.onload = function(e) {
-            parseDocx(e.target.result);
-        };
+        reader.onload = function(e) { parseDocx(e.target.result); };
         reader.readAsArrayBuffer(file);
     });
 
-    // Запуск при загрузке страницы
     window.addEventListener('DOMContentLoaded', loadRepositoryFile);
 </script>
 
