@@ -305,7 +305,7 @@
 
     let examQueue = shuffledTests.map((q, idx) => ({ ...q, isTaskItem: false, topic: `⏱️ Экзамен: Тест ${idx + 1} из 50` }));
     if (chosenTask) {
-      examQueue.push({ ...chosenTask, isTaskItem: true, topic: `⏱️ Экзамен: Практическая задача (№51)` });
+      examQueue.push({ ...chosenTask, isTaskItem: true, topic: `⏱️️ Экзамен: Практическая задача (№51)` });
     }
 
     AppState.sessionQueue = examQueue;
@@ -350,10 +350,40 @@
     let parsedData = [];
     let currentQ = null;
 
-    lines.forEach((line, idx) => {
+    function finalizeQuestion(q) {
+      if (!q || q.options.length === 0) return;
+      let extractedRationale = "";
+
+      // Проверяем все варианты ответа на наличие текста "Обоснование" или "<Обоснование>"
+      q.options = q.options.map(opt => {
+        if (/обоснование/i.test(opt)) {
+          const parts = opt.split(/<Обоснование>:?|Обоснование:?/i);
+          if (parts.length > 1) {
+            const mainOpt = parts[0].trim();
+            const rationale = parts.slice(1).join(" ").replace(/^:\s*/, '').trim();
+            if (rationale) {
+              extractedRationale = (extractedRationale ? extractedRationale + " " : "") + rationale;
+            }
+            return mainOpt || opt;
+          }
+        }
+        return opt;
+      });
+
+      if (extractedRationale) {
+        if (!q.legalBasis) {
+          q.legalBasis = { rule: "Норма права", logic: extractedRationale };
+        } else {
+          q.legalBasis.logic = extractedRationale;
+        }
+      }
+      parsedData.push(q);
+    }
+
+    lines.forEach((line) => {
       if (line.startsWith('<Вопрос №>') || line.startsWith('<Вопрос>:')) {
-        if (currentQ && currentQ.options.length > 0) {
-          parsedData.push(currentQ);
+        if (currentQ) {
+          finalizeQuestion(currentQ);
         }
         const text = line.replace(/^<[^>]+>:\s*/, '');
         currentQ = { 
@@ -393,8 +423,8 @@
       }
     });
 
-    if (currentQ && currentQ.options.length > 0) {
-      parsedData.push(currentQ);
+    if (currentQ) {
+      finalizeQuestion(currentQ);
     }
     return parsedData;
   }
@@ -506,7 +536,7 @@
       <div class="question-text">${q.question || q.title}</div>
       <div class="answers-container">${optionsHTML}</div>
       <button class="pill-btn" style="margin-top: 12px; width: 100%; text-align: center; padding:8px;" onclick="toggleLegalHint()">
-        ⚖️ Развёрнутое правовое обоснование
+        ⚖️️ Развёрнутое правовое обоснование
       </button>
       <div id="legal-hint-card" class="legal-analysis-box">
         <p style="margin: 0 0 4px 0;"><b>📜 Закон:</b> ${q.legalBasis ? q.legalBasis.rule : "Законодательство РФ"}</p>
