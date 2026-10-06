@@ -79,6 +79,7 @@
             line-height: 1.4;
             margin-bottom: 20px;
             font-weight: 600;
+            white-space: pre-wrap;
         }
 
         .options-list {
@@ -142,13 +143,12 @@
 
         .file-label {
             display: inline-block;
-            background-color: var(--accent-blue);
+            background-color: #334155;
             color: white;
             padding: 10px 16px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
         }
         input[type="file"] { display: none; }
     </style>
@@ -158,16 +158,16 @@
 <div class="container">
     <div class="header-card">
         <h1>PRO Нотариус 2026</h1>
-        <div id="status" class="status">✅ Приложение готово к работе</div>
+        <div id="status" class="status">⏳ Авто-подключение к базе вопросов...</div>
         <label for="fileInput" class="file-label">
-            📁 Загрузить файл с вопросами (.docx)
+            📁 Загрузить файл с ПК
         </label>
         <input type="file" id="fileInput" accept=".docx">
     </div>
 
     <div id="quizContainer" class="q-card">
         <div id="qNumber" class="q-number">Вопрос 1</div>
-        <div id="qTitle" class="q-title">Демо-вопрос: Что является предметом нотариальной деятельности?</div>
+        <div id="qTitle" class="q-title">Загрузка...</div>
         <div id="options" class="options-list"></div>
         
         <div class="nav-btns">
@@ -178,113 +178,82 @@
 </div>
 
 <script>
-    let questionsData = [
-        {
-            title: "Демо-вопрос: Что является предметом нотариальной деятельности?",
-            options: [
-                "А) Удостоверение бесспорных прав и фактов",
-                "Б) Рассмотрение уголовных дел",
-                "В) Регистрация юридических лиц в налоговой",
-                "Г) Вынесение судебных решений"
-            ],
-            correctIndex: 0
-        }
-    ];
+    let questionsData = [];
     let currentIndex = 0;
 
     const statusEl = document.getElementById('status');
 
-    function showQuestion(index) {
-        if (index < 0 || index >= questionsData.length) return;
-        currentIndex = index;
-        const q = questionsData[index];
+    // Автоматическая попытка загрузить файл из репозитория
+    async function autoLoadRepoFile() {
+        const fileNames = [
+            "Вопросы Эталона 2026.docx",
+            "Вопросы%20Эталона%202026.docx"
+        ];
 
-        document.getElementById('qNumber').innerText = `Вопрос ${index + 1} из ${questionsData.length}`;
-        document.getElementById('qTitle').innerText = q.title;
-
-        const optsContainer = document.getElementById('options');
-        optsContainer.innerHTML = '';
-
-        q.options.forEach((optText, optIdx) => {
-            const btn = document.createElement('button');
-            btn.className = 'opt-btn';
-            btn.innerText = optText;
-            btn.onclick = () => selectOption(btn, optIdx, q.correctIndex);
-            optsContainer.appendChild(btn);
-        });
-
-        document.getElementById('prevBtn').disabled = (index === 0);
-        document.getElementById('nextBtn').disabled = (index === questionsData.length - 1);
+        for (let name of fileNames) {
+            try {
+                const res = await fetch(name);
+                if (res.ok) {
+                    const buffer = await res.arrayBuffer();
+                    parseDocxBuffer(buffer);
+                    return;
+                }
+            } catch(e) {}
+        }
+        statusEl.innerText = "ℹ️ Выберите файл .docx с устройства, если тест не запустился:";
     }
 
-    function selectOption(btn, selectedIdx, correctIdx) {
-        const allBtns = document.querySelectorAll('.opt-btn');
-        allBtns.forEach(b => b.onclick = null);
+    function parseDocxBuffer(buffer) {
+        statusEl.innerText = "⏳ Обработка документа...";
+        mammoth.extractRawText({ arrayBuffer: buffer })
+            .then(result => {
+                parseFlexibleText(result.value);
+            })
+            .catch(err => {
+                statusEl.innerText = "❌ Ошибка чтения формата .docx";
+            });
+    }
 
-        if (selectedIdx === correctIdx) {
-            btn.classList.add('correct');
-        } else {
-            btn.classList.add('wrong');
-            if (allBtns[correctIdx]) {
-                allBtns[correctIdx].classList.add('correct');
+    // Мягкий парсер: подходит под любые маркеры и переносы
+    function parseFlexibleText(fullText) {
+        const rawLines = fullText.split('\n').map(s => s.trim()).filter(Boolean);
+        parsed = [];
+        let current = null;
+
+        for (let line of rawLines) {
+            // Если начинается с цифры, "Вопрос" или содержит '?' в конце короткой строки
+            const isQuestionStart = /^\d+[\.\)\s]/i.test(line) || /^Вопрос/i.test(line);
+            const isOption = /^[а-гa-d1-4][\.\)\-]/i.test(line) || /^[•\-–]/.test(line);
+
+            if (isQuestionStart) {
+                if (current && current.options.length > 0) parsed.push(current);
+                current = { title: line, options: [], correctIndex: 0 };
+            } else if (current) {
+                if (isOption) {
+                    current.options.push(line);
+                } else {
+                    if (current.options.length === 0) {
+                        current.title += "\n" + line;
+                    } else {
+                        current.options[current.options.length - 1] += " " + line;
+                    }
+                }
+            } else {
+                // Если файл начался без цифры в 1 вопросе
+                current = { title: line, options: [], correctIndex: 0 };
             }
         }
-    }
+        if (current && current.options.length > 0) parsed.push(current);
 
-    function prevQuestion() { showQuestion(currentIndex - 1); }
-    function nextQuestion() { showQuestion(currentIndex + 1); }
-
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        statusEl.innerText = "⏳ Чтение файла...";
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            mammoth.extractRawText({ arrayBuffer: e.target.result })
-                .then(result => {
-                    parseText(result.value);
-                })
-                .catch(err => {
-                    statusEl.innerText = "❌ Ошибка чтения .docx файла";
-                });
-        };
-        reader.readAsArrayBuffer(file);
-    });
-
-    function parseText(text) {
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        const parsed = [];
-        let currentQ = null;
-
-        lines.forEach(line => {
-            if (/^\d+[\.\)]/.test(line) || /^Вопрос\s+\d+/i.test(line)) {
-                if (currentQ && currentQ.options.length > 0) parsed.push(currentQ);
-                currentQ = { title: line, options: [], correctIndex: 0 };
-            } else if (currentQ) {
-                if (/^[а-гА-Гa-dA-D][\.\)]/.test(line) || /^[•\-–]/.test(line)) {
-                    currentQ.options.push(line);
-                } else {
-                    if (currentQ.options.length === 0) currentQ.title += "\n" + line;
-                    else currentQ.options[currentQ.options.length - 1] += " " + line;
-                }
+        // Резервный вариант: делим просто по блокам, если спец-символов не было
+        if (parsed.length === 0 && rawLines.length > 0) {
+            let tempQ = { title: rawLines[0], options: [], correctIndex: 0 };
+            for(let i = 1; i < rawLines.length; i++) {
+                tempQ.options.push(rawLines[i]);
             }
-        });
-        if (currentQ && currentQ.options.length > 0) parsed.push(currentQ);
+            if(tempQ.options.length > 0) parsed.push(tempQ);
+        }
 
         if (parsed.length > 0) {
             questionsData = parsed;
-            statusEl.innerText = `✅ Загружено вопросов из файла: ${parsed.length}`;
-            statusEl.style.color = "#10b981";
-            showQuestion(0);
-        } else {
-            statusEl.innerText = "⚠️ Не удалось распознать вопросы в файле";
-        }
-    }
-
-    // Инициализация при старте
-    showQuestion(0);
-</script>
-
-</body>
-</html>
+            statusEl.innerText =
