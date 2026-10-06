@@ -1,312 +1,125 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRO Нотариус 2026</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <style>
-        :root {
-            --bg-color: #0b1329;
-            --card-bg: #162238;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-blue: #2563eb;
-            --accent-cyan: #38bdf8;
-            --success-green: #10b981;
-            --error-red: #ef4444;
-            --border-color: #334155;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>PRO Нотариус 2026</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
+  <style>
+    :root {
+      --bg-color: #0b1329;
+      --card-bg: #162238;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #2563eb;
+      --accent-cyan: #38bdf8;
+      --success-green: #10b981;
+      --error-red: #ef4444;
+      --warning-amber: #f59e0b;
+      --border-color: #334155;
+    }
 
-        .container {
-            max-width: 720px;
-            width: 100%;
-        }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        .header-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-        }
+    html, body {
+      width: 100%; height: 100dvh; margin: 0; padding: 0;
+      background-color: var(--bg-color); color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, sans-serif;
+      overflow: hidden;
+    }
 
-        h1 {
-            color: var(--accent-cyan);
-            margin: 0 0 10px 0;
-            font-size: 22px;
-        }
+    #app-container {
+      display: flex; flex-direction: column; width: 100%; height: 100dvh;
+      padding-top: max(8px, env(safe-area-inset-top));
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      padding-left: max(10px, env(safe-area-inset-left));
+      padding-right: max(10px, env(safe-area-inset-right));
+    }
 
-        .status {
-            padding: 10px 14px;
-            border-radius: 8px;
-            background: #1e293b;
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-        }
+    .header-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px; background: var(--card-bg); border: 1px solid var(--border-color);
+      padding: 6px 10px; border-radius: 12px; flex-shrink: 0; gap: 4px;
+    }
 
-        .q-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-        }
+    .brand-title {
+      font-size: 0.85em; font-weight: 800; color: var(--accent-cyan);
+      cursor: pointer; padding: 6px 10px; border-radius: 8px;
+      background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+    }
 
-        .q-number {
-            font-size: 13px;
-            color: var(--accent-cyan);
-            font-weight: bold;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
+    .pill-btn {
+      background: #1e293b; border: 1px solid var(--border-color); color: var(--text-main);
+      padding: 6px 10px; border-radius: 16px; font-size: 0.72em; font-weight: 600; cursor: pointer;
+    }
+    .pill-btn.exam-btn { background: var(--accent-blue); color: #fff; border-color: var(--accent-cyan); font-weight: 700; }
 
-        .q-title {
-            font-size: 17px;
-            line-height: 1.4;
-            margin-bottom: 20px;
-            font-weight: 600;
-            white-space: pre-wrap;
-        }
+    #exam-timer-display {
+      background: var(--error-red); color: white; padding: 5px 10px; border-radius: 8px;
+      font-weight: 800; font-size: 0.85em; display: none; text-align: center;
+    }
 
-        .options-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+    .global-progress-wrapper {
+      background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 6px 10px; margin-bottom: 6px; flex-shrink: 0;
+    }
+    .progress-info-row { display: flex; justify-content: space-between; font-size: 0.7em; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+    .progress-bar-bg { width: 100%; height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color); }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); border-radius: 4px; transition: width 0.4s ease; }
 
-        .opt-btn {
-            background: #1e293b;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 14px 16px;
-            border-radius: 8px;
-            text-align: left;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.2s;
-            line-height: 1.3;
-        }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 6px; flex-shrink: 0; }
+    .stat-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 2px; text-align: center; cursor: pointer; }
+    .stat-number { font-size: 1.1em; font-weight: 800; }
+    .stat-label { font-size: 0.65em; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
 
-        .opt-btn:hover {
-            border-color: var(--accent-blue);
-            background: #27354d;
-        }
+    .quiz-card {
+      flex: 1; background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 14px; padding: 12px; margin-bottom: 6px;
+      display: flex; flex-direction: column; overflow-y: auto; min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
 
-        .opt-btn.correct {
-            background: rgba(16, 185, 129, 0.2) !important;
-            border-color: var(--success-green) !important;
-            color: #6ee7b7;
-        }
+    .meta-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
+    .topic-badge { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; padding: 3px 8px; border-radius: 6px; font-size: 0.7em; font-weight: 700; }
+    .counter-badge { font-size: 0.75em; color: var(--text-muted); font-weight: 700; }
 
-        .opt-btn.wrong {
-            background: rgba(239, 68, 68, 0.2) !important;
-            border-color: var(--error-red) !important;
-            color: #fca5a5;
-        }
+    .question-text { font-size: 0.95em; font-weight: 700; line-height: 1.35; color: #ffffff; margin-bottom: 12px; white-space: pre-line; }
+    .answers-container { display: flex; flex-direction: column; gap: 6px; }
 
-        .nav-btns {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            gap: 10px;
-        }
+    .opt-button {
+      background: #1e293b; border: 1px solid var(--border-color); color: #f1f5f9;
+      padding: 10px 12px; border-radius: 10px; text-align: left; font-size: 0.88em;
+      font-weight: 500; line-height: 1.3; cursor: pointer;
+    }
+    .opt-button.correct { background: rgba(16, 185, 129, 0.25) !important; border-color: var(--success-green) !important; color: #34d399 !important; font-weight: 700; }
+    .opt-button.wrong { background: rgba(239, 68, 68, 0.25) !important; border-color: var(--error-red) !important; color: #fca5a5 !important; }
 
-        .action-btn {
-            background-color: var(--accent-blue);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            flex: 1;
-        }
+    .legal-analysis-box { margin-top: 10px; padding: 10px; background: #0f172a; border-left: 3px solid var(--accent-blue); border-radius: 8px; display: none; font-size: 0.82em; line-height: 1.35; }
+    .task-score-panel { background: rgba(245, 158, 11, 0.12); border: 1px dashed var(--warning-amber); border-radius: 12px; padding: 10px; margin-top: 12px; font-size: 0.85em; text-align: center; }
 
-        .action-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+    .bottom-nav { display: flex; gap: 6px; flex-shrink: 0; }
+    .nav-btn { flex: 1; background: var(--accent-blue); color: #ffffff; border: none; padding: 12px 6px; border-radius: 10px; font-weight: 700; font-size: 0.85em; cursor: pointer; text-align: center; }
+    .nav-btn.secondary { background: #334155; }
+    .nav-btn.home-btn { background: #0284c7; }
 
-        .file-label {
-            display: inline-block;
-            background-color: var(--border-color);
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        input[type="file"] { display: none; }
-    </style>
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 41, 0.96); backdrop-filter: blur(10px); z-index: 100; display: none; flex-direction: column; padding: 16px; overflow-y: auto; }
+    .topic-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+    .block-btn { background: #1e293b; border: 1px solid var(--border-color); color: var(--accent-cyan); padding: 8px; border-radius: 8px; text-align: center; font-size: 0.8em; font-weight: 700; cursor: pointer; }
+
+    .result-screen { text-align: center; padding: 20px 10px; }
+    .verdict-badge { display: inline-block; padding: 12px 34px; border-radius: 20px; font-size: 1.6em; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
+    .verdict-badge.passed { background: var(--success-green); color: white; box-shadow: 0 0 15px rgba(16,185,129,0.4); }
+    .verdict-badge.failed { background: var(--error-red); color: white; box-shadow: 0 0 15px rgba(239,68,68,0.4); }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header-card">
-        <h1>PRO Нотариус 2026</h1>
-        <div id="status" class="status">⏳ Авто-подключение к базе вопросов...</div>
-        
-        <label for="fileInput" class="file-label" id="uploadLabel" style="display: none;">
-            📁 Выбрать файл вручную (.docx)
-        </label>
-        <input type="file" id="fileInput" accept=".docx">
-    </div>
-
-    <div id="quizContainer" class="q-card" style="display: none;">
-        <div id="qNumber" class="q-number">Вопрос 1</div>
-        <div id="qTitle" class="q-title"></div>
-        <div id="options" class="options-list"></div>
-        
-        <div class="nav-btns">
-            <button id="prevBtn" class="action-btn" onclick="prevQuestion()" disabled>◄ Назад</button>
-            <button id="nextBtn" class="action-btn" onclick="nextQuestion()">Вперёд ►</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let questionsData = [];
-    let currentIndex = 0;
-    const statusEl = document.getElementById('status');
-    const uploadLabel = document.getElementById('uploadLabel');
-
-    // Автоматическая загрузка при открытии страницы
-    window.onload = async function() {
-        try {
-            // ТЕПЕРЬ ЗАГРУЖАЕТСЯ ФАЙЛ БЕЗ ПРОБЕЛОВ И КИРИЛЛИЦЫ
-            const response = await fetch("data.docx");
-            if (!response.ok) {
-                throw new Error("Файл не найден");
-            }
-            const arrayBuffer = await response.arrayBuffer();
-            
-            statusEl.innerText = "⏳ Распознавание текста...";
-            
-            mammoth.extractRawText({ arrayBuffer: arrayBuffer })
-                .then(result => parseTextData(result.value))
-                .catch(err => {
-                    showError("Ошибка чтения документа.");
-                });
-        } catch (error) {
-            showError("Не удалось скачать файл. Убедитесь, что переименовали его в data.docx");
-        }
-    };
-
-    function showError(msg) {
-        statusEl.innerText = "❌ " + msg;
-        statusEl.style.color = "#ef4444";
-        uploadLabel.style.display = "inline-block"; // Показываем кнопку ручной загрузки
-    }
-
-    // Обработчик ручной загрузки (на случай сбоев сети)
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        statusEl.innerText = "⏳ Обработка локального файла...";
-        statusEl.style.color = "#94a3b8";
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            mammoth.extractRawText({ arrayBuffer: evt.target.result })
-                .then(result => parseTextData(result.value))
-                .catch(err => showError("Ошибка чтения файла .docx"));
-        };
-        reader.readAsArrayBuffer(file);
-    });
-
-    function parseTextData(fullText) {
-        const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
-        questionsData = [];
-        let currentQ = null;
-
-        lines.forEach(line => {
-            const isQStart = /^\d+[\.\)\s]/i.test(line) || /^Вопрос/i.test(line);
-            const isOpt = /^[а-гa-d1-4][\.\)\-]/i.test(line) || /^[•\-–]/.test(line);
-
-            if (isQStart && !isOpt) {
-                if (currentQ && currentQ.options.length > 0) questionsData.push(currentQ);
-                currentQ = { title: line, options: [], correctIndex: 0 };
-            } else if (currentQ) {
-                if (isOpt) {
-                    currentQ.options.push(line);
-                } else {
-                    if (currentQ.options.length === 0) {
-                        currentQ.title += "\n" + line;
-                    } else {
-                        currentQ.options[currentQ.options.length - 1] += " " + line;
-                    }
-                }
-            }
-        });
-
-        if (currentQ && currentQ.options.length > 0) questionsData.push(currentQ);
-
-        if (questionsData.length > 0) {
-            statusEl.innerText = `✅ Успешно загружено вопросов: ${questionsData.length}`;
-            statusEl.style.color = "#10b981";
-            uploadLabel.style.display = "none";
-            document.getElementById('quizContainer').style.display = 'block';
-            showQuestion(0);
-        } else {
-            showError("Не удалось выделить варианты ответов.");
-        }
-    }
-
-    function showQuestion(index) {
-        if (index < 0 || index >= questionsData.length) return;
-        currentIndex = index;
-        const q = questionsData[index];
-
-        document.getElementById('qNumber').innerText = `Вопрос ${index + 1} из ${questionsData.length}`;
-        document.getElementById('qTitle').innerText = q.title;
-
-        const optsContainer = document.getElementById('options');
-        optsContainer.innerHTML = '';
-
-        q.options.forEach((optText, optIdx) => {
-            const btn = document.createElement('button');
-            btn.className = 'opt-btn';
-            btn.innerText = optText;
-            btn.onclick = () => selectOption(btn, optIdx, q.correctIndex);
-            optsContainer.appendChild(btn);
-        });
-
-        document.getElementById('prevBtn').disabled = (index === 0);
-        document.getElementById('nextBtn').disabled = (index === questionsData.length - 1);
-    }
-
-    function selectOption(btn, selectedIdx, correctIdx) {
-        const allBtns = document.querySelectorAll('.opt-btn');
-        allBtns.forEach(b => b.onclick = null);
-
-        if (selectedIdx === correctIdx) {
-            btn.classList.add('correct');
-        } else {
-            btn.classList.add('wrong');
-            if (allBtns[correctIdx]) {
-                allBtns[correctIdx].classList.add('correct');
-            }
-        }
-    }
-
-    function prevQuestion() { showQuestion(currentIndex - 1); }
-    function nextQuestion() { showQuestion(currentIndex + 1); }
-</script>
-
-</body>
-</html>
+<div id="app-container">
+  <header class="header-bar">
+    <div class="brand-title" onclick="openRandomTask()">⚖️ Нотариус Pro 🔀</div>
+    <div id="exam-timer-display">60
