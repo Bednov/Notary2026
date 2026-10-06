@@ -172,10 +172,6 @@
 </div>
 
 <script>
-  // Параметры задержки автоматического перелистывания (в миллисекундах)
-  const AUTO_ADVANCE_DELAY_CORRECT = 350; // Пауза при правильном ответе
-  const AUTO_ADVANCE_DELAY_WRONG = 1500;  // Пауза при неверном ответе (чтобы успеть рассмотреть правильный вариант)
-
   const AudioEngine = {
     ctx: null,
     isMuted: false,
@@ -525,7 +521,7 @@
 
   function handleOptionSelect(selectedIdx, correctIdx, qId, btnElement) {
     if (isTransitioning) return;
-    isTransitioning = true;
+    isTransitioning = true; // Блокируем повторный выбор вариантов до нажатия «Вперёд»
 
     selectedIdx = Number(selectedIdx);
     correctIdx = Number(correctIdx);
@@ -550,15 +546,12 @@
           examScore.testPoints += 1; 
         }
       }
-
-      setTimeout(navigateNext, AUTO_ADVANCE_DELAY_CORRECT);
     } else {
       if (!AppState.errorIds.includes(qId)) AppState.errorIds.push(qId);
       if (btnElement) btnElement.classList.add('wrong');
       if (allButtons[correctIdx]) allButtons[correctIdx].classList.add('correct');
       AudioEngine.playWrong();
       document.getElementById('legal-hint-card').style.display = 'block';
-      setTimeout(navigateNext, AUTO_ADVANCE_DELAY_WRONG);
     }
     syncStateToStorage();
   }
