@@ -188,7 +188,8 @@
     // Автоматическая загрузка при открытии страницы
     window.onload = async function() {
         try {
-            const response = await fetch("Вопросы Эталона 2026.docx");
+            // ТЕПЕРЬ ЗАГРУЖАЕТСЯ ФАЙЛ БЕЗ ПРОБЕЛОВ И КИРИЛЛИЦЫ
+            const response = await fetch("data.docx");
             if (!response.ok) {
                 throw new Error("Файл не найден");
             }
@@ -202,7 +203,7 @@
                     showError("Ошибка чтения документа.");
                 });
         } catch (error) {
-            showError("Не удалось скачать файл. GitHub Pages ещё обновляется.");
+            showError("Не удалось скачать файл. Убедитесь, что переименовали его в data.docx");
         }
     };
 
@@ -212,7 +213,7 @@
         uploadLabel.style.display = "inline-block"; // Показываем кнопку ручной загрузки
     }
 
-    // Обработчик ручной загрузки (на случай если автозагрузка упадет)
+    // Обработчик ручной загрузки (на случай сбоев сети)
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (!file) return;
