@@ -2,9 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PRO Нотариус 2026</title>
 
+    <!-- Библиотека для чтения .docx файлов -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
     <style>
@@ -81,6 +82,7 @@
             line-height: 1.4;
             margin-bottom: 20px;
             font-weight: 600;
+            white-space: pre-line;
         }
 
         .options-list {
@@ -160,9 +162,9 @@
 <div class="container">
     <div class="header-card">
         <h1>PRO Нотариус 2026</h1>
-        <div id="status" class="status">⏳ Считываем репозиторий GitHub...</div>
+        <div id="status" class="status">⏳ Подключение к файлу вопросов...</div>
         <label for="fileInput" class="file-label" id="uploadBtn" style="display: none;">
-            📁 Выбрать файл .docx вручную
+            📁 Выбрать файл .docx с устройства
         </label>
         <input type="file" id="fileInput" accept=".docx">
     </div>
@@ -180,7 +182,14 @@
 </div>
 
 <script>
-    const TARGET_FILE = "Вопросы Эталона 2026.docx";
+    // Варианты имен файла для обхода ошибок кодировки URL и разных названий
+    const FILE_VARIANTS = [
+        "Вопросы Эталона 2026.docx",
+        "Вопросы%20Эталона%202026.docx",
+        "Эталон Вопросы 2026.docx",
+        "Эталон%20Вопросы%202026.docx"
+    ];
+
     let questionsData = [];
     let currentIndex = 0;
 
@@ -188,30 +197,25 @@
     const uploadBtn = document.getElementById('uploadBtn');
 
     async function loadRepositoryFile() {
-        const pathsToTry = [
-            encodeURIComponent(TARGET_FILE),
-            TARGET_FILE
-        ];
-
-        for (let path of pathsToTry) {
+        for (let path of FILE_VARIANTS) {
             try {
-                const response = await fetch(path);
+                const response = await fetch(path, { cache: "no-store" });
                 if (response.ok) {
                     const arrayBuffer = await response.arrayBuffer();
+                    statusEl.innerText = "⏳ Файл найден! Обработка вопросов...";
                     parseDocx(arrayBuffer);
                     return;
                 }
             } catch (e) {
-                console.log("Ошибку при получении пути:", path);
+                console.log("Пропуск пути:", path);
             }
         }
 
-        statusEl.innerHTML = `⚠️ Авто-загрузка не удалась. Выберите файл вручную:`;
+        statusEl.innerHTML = `⚠️️ Файл не найден автоматически. Нажмите ниже, чтобы выбрать его:`;
         uploadBtn.style.display = 'inline-block';
     }
 
     function parseDocx(arrayBuffer) {
-        statusEl.innerText = "⏳ Распознавание вопросов из документа...";
         mammoth.extractRawText({ arrayBuffer: arrayBuffer })
             .then(result => {
                 buildQuizFromText(result.value);
@@ -219,6 +223,7 @@
             .catch(err => {
                 console.error(err);
                 statusEl.innerText = "❌ Ошибка чтения .docx файла.";
+                uploadBtn.style.display = 'inline-block';
             });
     }
 
@@ -228,7 +233,7 @@
         let currentQ = null;
 
         lines.forEach(line => {
-            // Ищем начало вопроса (например "1. Вопрос..." или "Вопрос 1:")
+            // Распознаем начало вопроса (1., 1), Вопрос 1 и т.д.)
             if (/^\d+[\.\)]/.test(line) || /^Вопрос\s+\d+/i.test(line)) {
                 if (currentQ && currentQ.options.length > 0) {
                     questionsData.push(currentQ);
@@ -239,13 +244,12 @@
                     correctIndex: 0
                 };
             } else if (currentQ) {
-                // Если строка похожа на вариант ответа
+                // Распознаем варианты ответов
                 if (/^[а-гА-Гa-dA-D][\.\)]/.test(line) || /^[•\-–]/.test(line)) {
                     currentQ.options.push(line);
                 } else {
-                    // Дополнение к тексту вопроса
                     if (currentQ.options.length === 0) {
-                        currentQ.title += " " + line;
+                        currentQ.title += "\n" + line;
                     } else {
                         currentQ.options[currentQ.options.length - 1] += " " + line;
                     }
@@ -263,7 +267,7 @@
             document.getElementById('quizContainer').style.display = 'block';
             showQuestion(0);
         } else {
-            statusEl.innerText = "⚠️ Не удалось автоматически разделить текст на вопросы. Используется ручной выбор.";
+            statusEl.innerText = "⚠️ Не удалось распарсить вопросы из файла.";
             uploadBtn.style.display = 'inline-block';
         }
     }
@@ -293,7 +297,7 @@
 
     function selectOption(btn, selectedIdx, correctIdx) {
         const allBtns = document.querySelectorAll('.opt-btn');
-        allBtns.forEach(b => b.onclick = null); // Блокируем повторные клики
+        allBtns.forEach(b => b.onclick = null);
 
         if (selectedIdx === correctIdx) {
             btn.classList.add('correct');
@@ -305,19 +309,4 @@
         }
     }
 
-    function prevQuestion() { showQuestion(currentIndex - 1); }
-    function nextQuestion() { showQuestion(currentIndex + 1); }
-
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(e) { parseDocx(e.target.result); };
-        reader.readAsArrayBuffer(file);
-    });
-
-    window.addEventListener('DOMContentLoaded', loadRepositoryFile);
-</script>
-
-</body>
-</html>
+    function prevQuestion() { showQuestion
