@@ -269,7 +269,7 @@
   const DEFAULT_STATE = { currentIndex: 0, totalAnswered: 0, correctCount: 0, errorIds: [], favoritesIds: [], sessionQueue: [] };
   
   let AppState = { ...DEFAULT_STATE };
-  let SavedProgressState = JSON.parse(localStorage.getItem('notary_stats_save_v6')) || { totalAnswered: 0, correctCount: 0, errorIds: [], favoritesIds: [] };
+  let SavedProgressState = JSON.parse(localStorage.getItem('notary_stats_save_v7')) || { totalAnswered: 0, correctCount: 0, errorIds: [], favoritesIds: [] };
   let GlobalMasteredIds = JSON.parse(localStorage.getItem('notary_global_mastered_v8')) || [];
   
   let isExamMode = false;
@@ -282,7 +282,7 @@
     SavedProgressState.correctCount = AppState.correctCount;
     SavedProgressState.errorIds = AppState.errorIds;
     SavedProgressState.favoritesIds = AppState.favoritesIds;
-    localStorage.setItem('notary_stats_save_v6', JSON.stringify(SavedProgressState));
+    localStorage.setItem('notary_stats_save_v7', JSON.stringify(SavedProgressState));
     localStorage.setItem('notary_global_mastered_v8', JSON.stringify(GlobalMasteredIds));
     renderDashboardUI();
   }
@@ -437,23 +437,20 @@
     let currentQ = null;
     let explicitExplanation = "";
     let activeTopicName = "Тема №1";
-    let realFileQuestionNum = 1;
+    let currentTopicNum = 1;
 
     lines.forEach((line) => {
-      // Активный поиск строк с названием темы в файле
-      if (line.toLowerCase().includes('тема') || line.toLowerCase().includes('раздел') || line.startsWith('#')) {
-        if (line.length < 90 && !line.startsWith('<')) {
-          activeTopicName = line.replace(/^#+\s*/, '').trim();
+      // Точный парсинг заголовков тем из документа (например: "<Тема №>: 1", "<Тема>: Правовые основы...")
+      if (line.startsWith('<Тема №>:')) {
+        const parts = line.replace('<Тема №>:', '').trim().split('\t');
+        if (parts.length > 0 && !isNaN(parts[0])) {
+          currentTopicNum = parseInt(parts[0], 10);
         }
-      }
-
-      // Точный поиск номера вопроса в файле (например, если в тексте есть "<Вопрос № 794>" или "Вопрос 794")
-      const numMatch = line.match(/(?:вопрос|№)\s*№?\s*(\d+)/i);
-      if (numMatch && numMatch[1]) {
-        let parsedNum = parseInt(numMatch[1], 10);
-        if (parsedNum < 5000) { // Исключаем совпадения с годами или статьями законов
-          realFileQuestionNum = parsedNum;
-        }
+      } else if (line.startsWith('<Тема>:')) {
+        activeTopicName = `Тема №${currentTopicNum}. ${line.replace('<Тема>:', '').trim()}`;
+      } else if (line.toLowerCase().includes('тема №') && line.length < 30) {
+        let matchNum = line.match(/(\d+)/);
+        if (matchNum) currentTopicNum = parseInt(matchNum[1], 10);
       }
 
       if (line.startsWith('<Вопрос №>') || line.startsWith('<Вопрос>:')) {
@@ -466,15 +463,20 @@
         const text = line.replace(/^<[^>]+>:\s*/, '');
         explicitExplanation = "";
         
-        let sequentialId = parsedData.length + 1;
-        // Если в файле номера не указаны явно, распределяем по блокам по 80 вопросов на тему
-        let computedTopicNum = Math.floor((sequentialId - 1) / 80) + 1;
-        let finalTopicDisplay = activeTopicName.toLowerCase().includes('тема') ? activeTopicName : `Тема №${computedTopicNum}`;
+        let qNumInFile = 1;
+        let numMatch = line.match(/(?:вопрос|№)\s*№?\s*(\d+)/i);
+        if (numMatch && numMatch[1]) {
+          qNumInFile = parseInt(numMatch[1], 10);
+        } else {
+          // Автономный счетчик в рамках темы, если номер не распарсился
+          qNumInFile = parsedData.filter(q => q.topicNum === currentTopicNum).length + 1;
+        }
 
         currentQ = { 
           id: 1000 + parsedData.length,
-          originalIndex: realFileQuestionNum || sequentialId,
-          topic: finalTopicDisplay,
+          originalIndex: qNumInFile,
+          topicNum: currentTopicNum,
+          topic: activeTopicName,
           title: text, 
           question: text,
           options: [], 
@@ -482,7 +484,6 @@
           correctIndex: 0,
           legalBasis: null
         };
-        realFileQuestionNum++; // Авто-инкремент если следующий номер не прописан явно
       } else if (line.startsWith('<Вопрос>')) {
         const text = line.replace(/^<[^>]+>:\s*/, '');
         if (currentQ) {
@@ -525,8 +526,7 @@
       parsedData.push(currentQ);
     }
 
-    parsedData.forEach((q, idx) => {
-      if (!q.originalIndex) q.originalIndex = idx + 1;
+    parsedData.forEach((q) => {
       if (!q.legalBasis || q.legalBasis.logic.includes("Материал квалификационного теста")) {
         q.options = q.options.filter(opt => {
           if (opt.toLowerCase().includes('обоснование') || opt.startsWith('Обоснование')) {
@@ -595,7 +595,7 @@
       if (currentOrderMode === 'random') {
         AppState.sessionQueue = [...tests].sort(() => Math.random() - 0.5);
       } else {
-        AppState.sessionQueue = [...tests]; // Строго по порядку (1, 2, 3...)
+        AppState.sessionQueue = [...tests]; // Строго по порядку
       }
     } else {
       AppState.sessionQueue = [{ id: 0, originalIndex: 1, topic: "Тема №1", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
@@ -612,9 +612,9 @@
 
     const q = AppState.sessionQueue[AppState.currentIndex];
     
-    // Гарантированный вывод номера темы и номера вопроса из базы
+    // Четкий вывод темы и локального номера вопроса
     const topicName = q.topic || "Тема №1";
-    const qNum = q.originalIndex ? q.originalIndex : (AppState.currentIndex + 1);
+    const qNum = q.originalIndex ? q.originalIndex : 1;
     const badgeText = `📌 ${topicName} • Вопр. №${qNum}`;
     
     const topicBadgeEl = document.getElementById('ui-topic-tag');
