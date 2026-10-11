@@ -339,47 +339,45 @@
     if (el) el.innerText = `Начислено: ${points} б.`;
   }
 
-  // Устойчивый парсер для тегов тем и вопросов
+  // Исправленный надежный парсер без конфликтов тегов
   function parseTextData(fullText) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     let parsedData = [];
     let currentQ = null;
-    let currentTemaNum = "";
+    let currentTemaNum = "1";
     let currentTemaTitle = "";
     let localQCounter = 0;
 
     lines.forEach((line) => {
       let cleanLineNoSpaces = line.replace(/\s+/g, '').toLowerCase();
-      if (cleanLineNoSpaces.includes('<tema№>')) {
+
+      if (cleanLineNoSpaces.startsWith('<tema№>:')) {
         currentTemaNum = line.replace(/^<[^>]+>:\s*/, '').trim();
         localQCounter = 0;
-      } else if (cleanLineNoSpaces.includes('<tema>:')) {
+      } else if (cleanLineNoSpaces.startsWith('<tema>:')) {
         currentTemaTitle = line.replace(/^<[^>]+>:\s*/, '').trim();
-      } else if (line.startsWith('<Вопрос №>') || line.startsWith('<Вопрос>:')) {
+      } else if (cleanLineNoSpaces.startsWith('<вопрос№>:')) {
         if (currentQ && currentQ.options.length > 0) {
           parsedData.push(currentQ);
         }
-        const text = line.replace(/^<[^>]+>:\s*/, '');
         localQCounter++;
-        
         let topicName = currentTemaNum ? `Тема №${currentTemaNum}` : "Общая база";
         if (currentTemaTitle) {
           topicName += `: ${currentTemaTitle}`;
         }
-        
         currentQ = { 
           id: 1000 + parsedData.length,
           temaNum: currentTemaNum || "1",
           questionNum: localQCounter,
           topic: topicName,
-          title: text, 
-          question: text,
+          title: "", 
+          question: "",
           options: [], 
           correct: 0,
           correctIndex: 0,
           legalBasis: { rule: "Основы законодательства РФ о нотариате и ГК РФ", logic: "Нормативное регулирование нотариальной деятельности." }
         };
-      } else if (line.startsWith('<Вопрос>')) {
+      } else if (cleanLineNoSpaces.startsWith('<вопрос>:')) {
         const text = line.replace(/^<[^>]+>:\s*/, '');
         if (currentQ) {
           currentQ.title += (currentQ.title ? "\n" : "") + text;
@@ -390,13 +388,13 @@
         if (currentQ) {
           currentQ.options.push(optText);
         }
-      } else if (line.startsWith('<Правильный ответ>')) {
+      } else if (cleanLineNoSpaces.startsWith('<правильныйответ>:')) {
         const match = line.match(/:?\s*(\d+)/);
         if (match && currentQ) {
           currentQ.correct = parseInt(match[1], 10) - 1;
           currentQ.correctIndex = currentQ.correct;
         }
-      } else if (line.startsWith('<Обоснование>')) {
+      } else if (cleanLineNoSpaces.startsWith('<обоснование>:')) {
         const text = line.replace(/^<[^>]+>:\s*/, '');
         if (currentQ) {
           currentQ.legalBasis = { rule: text, logic: "Официальное нормативно-правовое обоснование из квалификационных требований." };
@@ -404,7 +402,7 @@
       } else if (currentQ) {
         if (currentQ.options.length > 0) {
           currentQ.options[currentQ.options.length - 1] += " " + line;
-        } else if (!line.startsWith('<Варианты ответа>')) {
+        } else if (!cleanLineNoSpaces.startsWith('<вариантыответа>')) {
           currentQ.title += "\n" + line;
           currentQ.question = currentQ.title;
         }
@@ -628,9 +626,20 @@
     navigateNext();
   }
 
+  // Модальное окно с сортировкой тем по номерам
   function openTopicsModal() {
     const topicsMap = {};
-    RAW_EXCEL_TESTS.forEach(q => { if (!topicsMap[q.topic]) topicsMap[q.topic] = 0; topicsMap[q.topic]++; });
+    RAW_EXCEL_TESTS.forEach(q => { 
+      let tKey = q.topic || "Общая база";
+      if (!topicsMap[tKey]) topicsMap[tKey] = 0; 
+      topicsMap[tKey]++; 
+    });
+
+    let sortedTopics = Object.keys(topicsMap).sort((a, b) => {
+      let numA = parseInt((a.match(/Тема №(\d+)/) || [])[1]) || 999;
+      let numB = parseInt((b.match(/Тема №(\d+)/) || [])[1]) || 999;
+      return numA - numB;
+    });
 
     const container = document.getElementById('topics-list-container');
     let html = `
@@ -644,7 +653,7 @@
       </div>
     `;
 
-    for (let t in topicsMap) {
+    sortedTopics.forEach(t => {
       let escapedTopic = t.replace(/'/g, "\\'");
       html += `
         <div class="topic-card">
@@ -656,7 +665,7 @@
           </div>
         </div>
       `;
-    }
+    });
     container.innerHTML = html;
     document.getElementById('topics-modal').style.display = 'flex';
   }
