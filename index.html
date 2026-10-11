@@ -30,27 +30,20 @@
       background-color: var(--bg-color); color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, sans-serif;
       overflow: hidden;
-      position: fixed; inset: 0;
-      -webkit-text-size-adjust: 100%;
     }
 
-    /* Жесткая сетка Grid: шапка, прогресс, статистика, карточка (тянется), нижние кнопки */
     #app-container {
-      display: grid;
-      grid-template-rows: auto auto auto 1fr auto;
-      width: 100%; height: 100dvh;
+      display: flex; flex-direction: column; width: 100%; height: 100dvh;
       padding-top: max(8px, env(safe-area-inset-top));
-      padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
-      padding-left: 10px;
-      padding-right: 10px;
-      gap: 6px;
-      overflow: hidden;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      padding-left: max(10px, env(safe-area-inset-left));
+      padding-right: max(10px, env(safe-area-inset-right));
     }
 
     .header-bar {
       display: flex; justify-content: space-between; align-items: center;
-      background: var(--card-bg); border: 1px solid var(--border-color);
-      padding: 6px 10px; border-radius: 12px; gap: 4px;
+      margin-bottom: 6px; background: var(--card-bg); border: 1px solid var(--border-color);
+      padding: 6px 10px; border-radius: 12px; flex-shrink: 0; gap: 4px;
     }
 
     .brand-title {
@@ -72,27 +65,27 @@
 
     .global-progress-wrapper {
       background: var(--card-bg); border: 1px solid var(--border-color);
-      border-radius: 10px; padding: 6px 10px;
+      border-radius: 10px; padding: 6px 10px; margin-bottom: 6px; flex-shrink: 0;
     }
     .progress-info-row { display: flex; justify-content: space-between; font-size: 0.7em; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
     .progress-bar-bg { width: 100%; height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color); }
     .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); border-radius: 4px; transition: width 0.4s ease; }
 
-    .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 6px; flex-shrink: 0; }
     .stat-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 2px; text-align: center; cursor: pointer; }
     .stat-number { font-size: 1.1em; font-weight: 800; }
     .stat-label { font-size: 0.65em; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
 
     .quiz-card {
-      background: var(--card-bg); border: 1px solid var(--border-color);
-      border-radius: 14px; padding: 12px;
+      flex: 1; background: var(--card-bg); border: 1px solid var(--border-color);
+      border-radius: 14px; padding: 12px; margin-bottom: 6px;
       display: flex; flex-direction: column; overflow-y: auto; min-height: 0;
       -webkit-overflow-scrolling: touch;
     }
 
-    .meta-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 6px; }
-    .topic-badge { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; padding: 3px 8px; border-radius: 6px; font-size: 0.7em; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-    .counter-badge { font-size: 0.75em; color: var(--text-muted); font-weight: 700; flex-shrink: 0; }
+    .meta-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
+    .topic-badge { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; padding: 3px 8px; border-radius: 6px; font-size: 0.7em; font-weight: 700; }
+    .counter-badge { font-size: 0.75em; color: var(--text-muted); font-weight: 700; }
 
     .question-text { font-size: 0.95em; font-weight: 700; line-height: 1.35; color: #ffffff; margin-bottom: 12px; white-space: pre-line; }
     .answers-container { display: flex; flex-direction: column; gap: 6px; }
@@ -108,7 +101,7 @@
     .legal-analysis-box { margin-top: 10px; padding: 10px; background: #0f172a; border-left: 3px solid var(--accent-blue); border-radius: 8px; display: none; font-size: 0.82em; line-height: 1.35; }
     .task-score-panel { background: rgba(245, 158, 11, 0.12); border: 1px dashed var(--warning-amber); border-radius: 12px; padding: 10px; margin-top: 12px; font-size: 0.85em; text-align: center; }
 
-    .bottom-nav { display: flex; gap: 6px; }
+    .bottom-nav { display: flex; gap: 6px; flex-shrink: 0; }
     .nav-btn { flex: 1; background: var(--accent-blue); color: #ffffff; border: none; padding: 12px 6px; border-radius: 10px; font-weight: 700; font-size: 0.85em; cursor: pointer; text-align: center; }
     .nav-btn.secondary { background: #334155; }
     .nav-btn.home-btn { background: #0284c7; }
@@ -132,6 +125,7 @@
     <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
       <button id="sound-toggle-btn" class="pill-btn" onclick="AudioEngine.toggleMute()">🔊 Звук</button>
       <button class="pill-btn exam-btn" onclick="startOfficialExamMode()">⏱️ Билет (50+1)</button>
+      <button class="pill-btn" onclick="openTopicsModal()">📚 Темы</button>
       <button class="pill-btn" onclick="resetFullState()" style="color: var(--error-red);">🗑️ Сброс</button>
     </div>
   </header>
@@ -163,7 +157,7 @@
 
   <footer class="bottom-nav">
     <button class="nav-btn secondary" onclick="navigatePrevious()">⬅️ Назад</button>
-    <button class="nav-btn home-btn" onclick="openTopicsModal()">🏠 Все темы</button>
+    <button class="nav-btn home-btn" onclick="restoreMainTestSession()">🏠 Все темы</button>
     <button class="nav-btn secondary" onclick="triggerShuffleBlock()">🔀 Блок</button>
     <button class="nav-btn" onclick="navigateNext()">Вперёд ➡️</button>
   </footer>
@@ -233,13 +227,18 @@
 
   let isTransitioning = false; 
 
-  function shuffleArray(array) {
-    let arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+  function generateLegalBasis(qText) {
+    const text = qText.toLowerCase();
+    if (text.includes("наследств") || text.includes("завещ") || text.includes("открыт")) {
+      return { rule: "Гражданский кодекс РФ (Раздел V. Наследственное право)", logic: "Регулирует порядок наследования, пресекательные сроки принятия и права обязательных наследников." };
     }
-    return arr;
+    if (text.includes("доверенност") || text.includes("представитель") || text.includes("полномоч")) {
+      return { rule: "Гл. 10 Гражданского кодекса РФ", logic: "Устанавливает требования к нотариальной форме доверенностей и правила их отмены в ЕИС." };
+    }
+    if (text.includes("супруг") || text.includes("брачн") || text.includes("брак")) {
+      return { rule: "Семейный кодекс РФ (гл. 7-8 СК РФ)", logic: "Определяет законный и договорный режим имущества супругов, правила раздела совместной собственности." };
+    }
+    return { rule: "Основы законодательства РФ о нотариате", logic: "Регламентирует правила совершения нотариальных действий и проверку законности сделок." };
   }
 
   let RAW_EXCEL_TESTS = [];
@@ -272,7 +271,7 @@
       document.getElementById('exam-timer-display').style.display = "none";
       AppState = { ...DEFAULT_STATE };
       SavedProgressState = { totalAnswered: 0, correctCount: 0, errorIds: [] };
-      buildSessionQueue(null, true);
+      buildSessionQueue();
       syncStateToStorage();
       renderCurrentQuestion();
     }
@@ -300,8 +299,8 @@
       }
     }, 1000);
 
-    let shuffledTests = shuffleArray(RAW_EXCEL_TESTS).slice(0, 50);
-    let shuffledTasks = shuffleArray(TASKS_DATABASE);
+    let shuffledTests = [...RAW_EXCEL_TESTS].sort(() => Math.random() - 0.5).slice(0, 50);
+    let shuffledTasks = [...TASKS_DATABASE].sort(() => Math.random() - 0.5);
     let chosenTask = shuffledTasks.length > 0 ? shuffledTasks[0] : null;
 
     let examQueue = shuffledTests.map((q, idx) => ({ ...q, isTaskItem: false, topic: `⏱️ Экзамен: Тест ${idx + 1} из 50` }));
@@ -334,7 +333,7 @@
           <p>🔹 Правильное решение задачи: <b style="color:var(--success-green);">${examScore.taskPoint}</b> из 5 б.</p>
           <p>🔹 Обоснование нормами права: <b style="color:var(--warning-amber);">${examScore.argPoints}</b> из 5 б.</p>
         </div>
-        <button class="nav-btn home-btn" style="width: 100%; padding:14px;" onclick="isExamMode=false; buildSessionQueue(null, true); renderCurrentQuestion();">Вернуться к тренировке</button>
+        <button class="nav-btn home-btn" style="width: 100%; padding:14px;" onclick="isExamMode=false; buildSessionQueue(); renderCurrentQuestion();">Вернуться к тренировке</button>
       </div>
     `;
     isExamMode = false;
@@ -350,40 +349,24 @@
     const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     let parsedData = [];
     let currentQ = null;
-    let currentTemaNum = "1";
-    let currentTemaTitle = "";
-    let localQCounter = 0;
 
-    lines.forEach((line) => {
-      let cleanLineNoSpaces = line.replace(/\s+/g, '').toLowerCase();
-
-      if (cleanLineNoSpaces.startsWith('<tema№>:')) {
-        currentTemaNum = line.replace(/^<[^>]+>:\s*/, '').trim();
-        localQCounter = 0;
-      } else if (cleanLineNoSpaces.startsWith('<tema>:')) {
-        currentTemaTitle = line.replace(/^<[^>]+>:\s*/, '').trim();
-      } else if (cleanLineNoSpaces.startsWith('<вопрос№>:')) {
+    lines.forEach((line, idx) => {
+      if (line.startsWith('<Вопрос №>') || line.startsWith('<Вопрос>:')) {
         if (currentQ && currentQ.options.length > 0) {
           parsedData.push(currentQ);
         }
-        localQCounter++;
-        let topicName = currentTemaNum ? `Тема №${currentTemaNum}` : "Общая база";
-        if (currentTemaTitle) {
-          topicName += `: ${currentTemaTitle}`;
-        }
+        const text = line.replace(/^<[^>]+>:\s*/, '');
         currentQ = { 
           id: 1000 + parsedData.length,
-          temaNum: currentTemaNum || "1",
-          questionNum: localQCounter,
-          topic: topicName,
-          title: "", 
-          question: "",
+          topic: "Основная база (README)",
+          title: text, 
+          question: text,
           options: [], 
           correct: 0,
           correctIndex: 0,
-          legalBasis: { rule: "Основы законодательства РФ о нотариате и ГК РФ", logic: "Нормативное регулирование нотариальной деятельности." }
+          legalBasis: generateLegalBasis(text)
         };
-      } else if (cleanLineNoSpaces.startsWith('<вопрос>:')) {
+      } else if (line.startsWith('<Вопрос>')) {
         const text = line.replace(/^<[^>]+>:\s*/, '');
         if (currentQ) {
           currentQ.title += (currentQ.title ? "\n" : "") + text;
@@ -394,21 +377,16 @@
         if (currentQ) {
           currentQ.options.push(optText);
         }
-      } else if (cleanLineNoSpaces.startsWith('<правильныйответ>:')) {
+      } else if (line.startsWith('<Правильный ответ>')) {
         const match = line.match(/:?\s*(\d+)/);
         if (match && currentQ) {
           currentQ.correct = parseInt(match[1], 10) - 1;
           currentQ.correctIndex = currentQ.correct;
         }
-      } else if (cleanLineNoSpaces.startsWith('<обоснование>:')) {
-        const text = line.replace(/^<[^>]+>:\s*/, '');
-        if (currentQ) {
-          currentQ.legalBasis = { rule: text, logic: "Официальное нормативно-правовое обоснование из квалификационных требований." };
-        }
       } else if (currentQ) {
         if (currentQ.options.length > 0) {
           currentQ.options[currentQ.options.length - 1] += " " + line;
-        } else if (!cleanLineNoSpaces.startsWith('<вариантыответа>')) {
+        } else if (!line.startsWith('<Варианты ответа>') && !line.startsWith('<Обоснование>')) {
           currentQ.title += "\n" + line;
           currentQ.question = currentQ.title;
         }
@@ -463,15 +441,15 @@
   }
 
   function finishInitialization() {
-    buildSessionQueue(null, true);
+    buildSessionQueue();
     renderCurrentQuestion();
   }
 
-  function buildSessionQueue(filterTopic = null, shuffle = true) {
+  function buildSessionQueue(filterTopic = null) {
     let tests = filterTopic ? RAW_EXCEL_TESTS.filter(q => q.topic === filterTopic) : [...RAW_EXCEL_TESTS];
 
     if (tests.length > 0) {
-      AppState.sessionQueue = shuffle ? shuffleArray(tests) : [...tests];
+      AppState.sessionQueue = tests.sort(() => Math.random() - 0.5);
     } else {
       AppState.sessionQueue = [{ id: 0, topic: "Инфо", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
     }
@@ -480,10 +458,15 @@
     syncStateToStorage();
   }
 
+  function restoreMainTestSession() {
+    buildSessionQueue();
+    renderCurrentQuestion();
+  }
+
   function startErrorReviewSession() {
     if (AppState.errorIds.length === 0) { alert("Список ошибок пуст!"); return; }
     let errorQuestions = [...RAW_EXCEL_TESTS].filter(q => AppState.errorIds.includes(q.id));
-    AppState.sessionQueue = shuffleArray(errorQuestions).map(q => ({ ...q, topic: "❌ Проработка ошибок" }));
+    AppState.sessionQueue = errorQuestions.map(q => ({ ...q, topic: "❌ Проработка ошибок" }));
     AppState.currentIndex = 0;
     renderCurrentQuestion();
   }
@@ -494,13 +477,7 @@
     if (AppState.currentIndex >= AppState.sessionQueue.length) AppState.currentIndex = 0;
 
     const q = AppState.sessionQueue[AppState.currentIndex];
-    
-    let badgeText = q.topic || "Раздел";
-    if (q.temaNum && q.questionNum && !q.topic.startsWith('⏱️') && !q.topic.startsWith('❌')) {
-      badgeText = `📌 Тема №${q.temaNum} • Вопр. №${q.questionNum}`;
-    }
-    
-    document.getElementById('ui-topic-tag').innerText = badgeText;
+    document.getElementById('ui-topic-tag').innerText = q.topic || "Раздел";
     document.getElementById('ui-question-counter').innerText = `${AppState.currentIndex + 1} / ${AppState.sessionQueue.length}`;
     
     const root = document.getElementById('dynamic-content-root');
@@ -528,11 +505,11 @@
     root.innerHTML = `
       <div class="question-text">${q.question || q.title}</div>
       <div class="answers-container">${optionsHTML}</div>
-      <button class="pill-btn" style="margin-top: 10px; width: 100%; text-align: center; padding:7px;" onclick="toggleLegalHint()">
+      <button class="pill-btn" style="margin-top: 12px; width: 100%; text-align: center; padding:8px;" onclick="toggleLegalHint()">
         ⚖️ Развёрнутое правовое обоснование
       </button>
       <div id="legal-hint-card" class="legal-analysis-box">
-        <p style="margin: 0 0 4px 0;"><b>📜 Обоснование:</b> ${q.legalBasis ? q.legalBasis.rule : "Законодательство РФ"}</p>
+        <p style="margin: 0 0 4px 0;"><b>📜 Закон:</b> ${q.legalBasis ? q.legalBasis.rule : "Законодательство РФ"}</p>
         <p style="margin: 0;"><b>🧠 Логика:</b> ${q.legalBasis ? q.legalBasis.logic : "Материал квалификационного теста нотариуса."}</p>
       </div>
       ${extraTaskPanel}
@@ -544,7 +521,7 @@
 
   function handleOptionSelect(selectedIdx, correctIdx, qId, btnElement) {
     if (isTransitioning) return;
-    isTransitioning = true; 
+    isTransitioning = true; // Блокируем повторный выбор вариантов до нажатия «Вперёд»
 
     selectedIdx = Number(selectedIdx);
     correctIdx = Number(correctIdx);
@@ -559,11 +536,6 @@
       
       if (!GlobalMasteredIds.includes(qId)) {
         GlobalMasteredIds.push(qId);
-      }
-
-      const errIndex = AppState.errorIds.indexOf(qId);
-      if (errIndex > -1) {
-        AppState.errorIds.splice(errIndex, 1);
       }
 
       if (isExamMode) {
@@ -606,7 +578,7 @@
     renderCurrentQuestion();
   }
 
-  function triggerShuffleBlock() { buildSessionQueue(null, true); renderCurrentQuestion(); }
+  function triggerShuffleBlock() { buildSessionQueue(); renderCurrentQuestion(); }
 
   function renderDashboardUI() {
     document.getElementById('ui-answered-count').innerText = AppState.totalAnswered;
@@ -633,49 +605,26 @@
 
   function openTopicsModal() {
     const topicsMap = {};
-    RAW_EXCEL_TESTS.forEach(q => { 
-      let tKey = q.topic || "Общая база";
-      if (!topicsMap[tKey]) topicsMap[tKey] = 0; 
-      topicsMap[tKey]++; 
-    });
-
-    let sortedTopics = Object.keys(topicsMap).sort((a, b) => {
-      let numA = parseInt((a.match(/Тема №(\d+)/) || [])[1]) || 999;
-      let numB = parseInt((b.match(/Тема №(\d+)/) || [])[1]) || 999;
-      return numA - numB;
-    });
+    RAW_EXCEL_TESTS.forEach(q => { if (!topicsMap[q.topic]) topicsMap[q.topic] = 0; topicsMap[q.topic]++; });
 
     const container = document.getElementById('topics-list-container');
-    let html = `
-      <div class="topic-card" style="border-color: var(--accent-cyan);">
-        <div style="font-weight: 800; font-size: 0.95em; color: var(--accent-cyan);">🌐 Вся база (Все темы вместе)</div>
-        <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 2px;">Всего доступно вопросов: ${RAW_EXCEL_TESTS.length}</div>
-        <div style="display: flex; gap: 6px; margin-top: 8px;">
-          <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock(null, false)">📋 По порядку</button>
-          <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock(null, true)">🔀 Вразброс</button>
-        </div>
-      </div>
-    `;
+    let html = '';
 
-    sortedTopics.forEach(t => {
-      let escapedTopic = t.replace(/'/g, "\\'");
+    for (let t in topicsMap) {
       html += `
         <div class="topic-card">
-          <div style="font-weight: 700; font-size: 0.9em; color: var(--text-main);">${t}</div>
+          <div style="font-weight: 700; font-size: 0.9em; color: var(--accent-cyan);">${t}</div>
           <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 2px;">Доступно вопросов: ${topicsMap[t]}</div>
-          <div style="display: flex; gap: 6px; margin-top: 6px;">
-            <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock('${escapedTopic}', false)">📋 По порядку</button>
-            <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock('${escapedTopic}', true)">🔀 Вразброс</button>
-          </div>
+          <button class="block-btn" onclick="selectTopicBlock('${t}')" style="width: 100%; margin-top:6px;">Запустить раздел</button>
         </div>
       `;
-    });
+    }
     container.innerHTML = html;
     document.getElementById('topics-modal').style.display = 'flex';
   }
 
   function closeTopicsModal() { document.getElementById('topics-modal').style.display = 'none'; }
-  function selectTopicBlock(t, shuffle) { buildSessionQueue(t, shuffle); renderCurrentQuestion(); closeTopicsModal(); }
+  function selectTopicBlock(t) { buildSessionQueue(t); renderCurrentQuestion(); closeTopicsModal(); }
 
   window.onload = loadReadmeAndInit;
 </script>
