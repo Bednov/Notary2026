@@ -30,6 +30,7 @@
       background-color: var(--bg-color); color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, sans-serif;
       overflow: hidden;
+      -webkit-text-size-adjust: 100%; /* Фиксация масштаба текста для iOS */
     }
 
     #app-container {
@@ -339,7 +340,6 @@
     if (el) el.innerText = `Начислено: ${points} б.`;
   }
 
-  // Исправленный надежный парсер без конфликтов тегов
   function parseTextData(fullText) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     let parsedData = [];
@@ -555,7 +555,6 @@
         GlobalMasteredIds.push(qId);
       }
 
-      // Автоматически удаляем вопрос из ошибок при правильном ответе
       const errIndex = AppState.errorIds.indexOf(qId);
       if (errIndex > -1) {
         AppState.errorIds.splice(errIndex, 1);
@@ -626,7 +625,6 @@
     navigateNext();
   }
 
-  // Модальное окно с сортировкой тем по номерам
   function openTopicsModal() {
     const topicsMap = {};
     RAW_EXCEL_TESTS.forEach(q => { 
