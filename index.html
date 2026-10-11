@@ -269,8 +269,8 @@
   const DEFAULT_STATE = { currentIndex: 0, totalAnswered: 0, correctCount: 0, errorIds: [], favoritesIds: [], sessionQueue: [] };
   
   let AppState = { ...DEFAULT_STATE };
-  let SavedProgressState = JSON.parse(localStorage.getItem('notary_stats_save_v4')) || { totalAnswered: 0, correctCount: 0, errorIds: [], favoritesIds: [] };
-  let GlobalMasteredIds = JSON.parse(localStorage.getItem('notary_global_mastered_v6')) || [];
+  let SavedProgressState = JSON.parse(localStorage.getItem('notary_stats_save_v6')) || { totalAnswered: 0, correctCount: 0, errorIds: [], favoritesIds: [] };
+  let GlobalMasteredIds = JSON.parse(localStorage.getItem('notary_global_mastered_v8')) || [];
   
   let isExamMode = false;
   let examCountdown = null;
@@ -282,8 +282,8 @@
     SavedProgressState.correctCount = AppState.correctCount;
     SavedProgressState.errorIds = AppState.errorIds;
     SavedProgressState.favoritesIds = AppState.favoritesIds;
-    localStorage.setItem('notary_stats_save_v4', JSON.stringify(SavedProgressState));
-    localStorage.setItem('notary_global_mastered_v6', JSON.stringify(GlobalMasteredIds));
+    localStorage.setItem('notary_stats_save_v6', JSON.stringify(SavedProgressState));
+    localStorage.setItem('notary_global_mastered_v8', JSON.stringify(GlobalMasteredIds));
     renderDashboardUI();
   }
 
@@ -436,22 +436,23 @@
     let parsedData = [];
     let currentQ = null;
     let explicitExplanation = "";
-    let currentTopicName = "Общая база";
-    let fileQuestionNumber = 0;
+    let activeTopicName = "Тема №1";
+    let realFileQuestionNum = 1;
 
     lines.forEach((line) => {
-      // Ищем маркеры темы в файле (например, заголовки, содержащие слова Тема, Раздел или начинающиеся с #)
+      // Активный поиск строк с названием темы в файле
       if (line.toLowerCase().includes('тема') || line.toLowerCase().includes('раздел') || line.startsWith('#')) {
-        if (line.length < 100 && !line.startsWith('<')) {
-          currentTopicName = line.replace(/^#+\s*/, '').trim();
+        if (line.length < 90 && !line.startsWith('<')) {
+          activeTopicName = line.replace(/^#+\s*/, '').trim();
         }
       }
 
-      // Ищем маркеры номера вопроса в файле (например, "Вопрос № 5", "№12", "Вопрос 15" и т.д.)
-      if (line.match(/(?:вопрос|№)\s*№?\s*(\d+)/i)) {
-        const matchNum = line.match(/(?:вопрос|№)\s*№?\s*(\d+)/i);
-        if (matchNum && matchNum[1]) {
-          fileQuestionNumber = parseInt(matchNum[1], 10);
+      // Точный поиск номера вопроса в файле (например, если в тексте есть "<Вопрос № 794>" или "Вопрос 794")
+      const numMatch = line.match(/(?:вопрос|№)\s*№?\s*(\d+)/i);
+      if (numMatch && numMatch[1]) {
+        let parsedNum = parseInt(numMatch[1], 10);
+        if (parsedNum < 5000) { // Исключаем совпадения с годами или статьями законов
+          realFileQuestionNum = parsedNum;
         }
       }
 
@@ -465,12 +466,15 @@
         const text = line.replace(/^<[^>]+>:\s*/, '');
         explicitExplanation = "";
         
-        fileQuestionNumber = parsedData.length + 1; // Автоматический инкремент, если в строке нет явного номера
+        let sequentialId = parsedData.length + 1;
+        // Если в файле номера не указаны явно, распределяем по блокам по 80 вопросов на тему
+        let computedTopicNum = Math.floor((sequentialId - 1) / 80) + 1;
+        let finalTopicDisplay = activeTopicName.toLowerCase().includes('тема') ? activeTopicName : `Тема №${computedTopicNum}`;
 
         currentQ = { 
           id: 1000 + parsedData.length,
-          originalIndex: fileQuestionNumber,
-          topic: currentTopicName,
+          originalIndex: realFileQuestionNum || sequentialId,
+          topic: finalTopicDisplay,
           title: text, 
           question: text,
           options: [], 
@@ -478,6 +482,7 @@
           correctIndex: 0,
           legalBasis: null
         };
+        realFileQuestionNum++; // Авто-инкремент если следующий номер не прописан явно
       } else if (line.startsWith('<Вопрос>')) {
         const text = line.replace(/^<[^>]+>:\s*/, '');
         if (currentQ) {
@@ -593,7 +598,7 @@
         AppState.sessionQueue = [...tests]; // Строго по порядку (1, 2, 3...)
       }
     } else {
-      AppState.sessionQueue = [{ id: 0, originalIndex: 1, topic: "Инфо", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
+      AppState.sessionQueue = [{ id: 0, originalIndex: 1, topic: "Тема №1", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
     }
     
     AppState.currentIndex = 0;
@@ -607,10 +612,10 @@
 
     const q = AppState.sessionQueue[AppState.currentIndex];
     
-    // Вывод реальной темы и реального номера вопроса из файла
-    const topicName = q.topic || "Общая база";
+    // Гарантированный вывод номера темы и номера вопроса из базы
+    const topicName = q.topic || "Тема №1";
     const qNum = q.originalIndex ? q.originalIndex : (AppState.currentIndex + 1);
-    const badgeText = `📌 ${topicName} • Вопрос №${qNum}`;
+    const badgeText = `📌 ${topicName} • Вопр. №${qNum}`;
     
     const topicBadgeEl = document.getElementById('ui-topic-tag');
     topicBadgeEl.innerText = badgeText;
@@ -740,7 +745,7 @@
     const pool = RAW_EXCEL_TESTS;
     if (pool.length === 0) return;
     let chosen = pool[Math.floor(Math.random() * pool.length)];
-    AppState.sessionQueue.splice(AppState.currentIndex + 1, 0, { ...chosen, topic: chosen.topic || "🔀 Случайный вопрос" });
+    AppState.sessionQueue.splice(AppState.currentIndex + 1, 0, { ...chosen, topic: chosen.topic || "Тема №1" });
     navigateNext();
   }
 
@@ -753,7 +758,7 @@
   function renderTopicsList(questionsPool) {
     const topicsMap = {};
     questionsPool.forEach(q => { 
-      let tName = q.topic || "Общая база";
+      let tName = q.topic || "Тема №1";
       if (!topicsMap[tName]) topicsMap[tName] = { count: 0, mastered: 0 }; 
       topicsMap[tName].count++;
       if (GlobalMasteredIds.includes(q.id)) topicsMap[tName].mastered++;
@@ -794,7 +799,7 @@
     matched.slice(0, 30).forEach((q) => {
       html += `
         <div class="topic-card" onclick="startFilteredQuestion(${q.id})" style="cursor:pointer;">
-          <div style="font-size: 0.7em; color: var(--text-muted);">${q.topic || "База"} | Вопрос №${q.originalIndex}</div>
+          <div style="font-size: 0.7em; color: var(--text-muted);">${q.topic || "Тема №1"} | Вопр. №${q.originalIndex}</div>
           <div style="font-weight: 600; font-size: 0.82em; color: #fff; margin-top: 2px;">${q.question.substring(0, 90)}...</div>
         </div>
       `;
