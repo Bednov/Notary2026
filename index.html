@@ -125,7 +125,6 @@
     <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
       <button id="sound-toggle-btn" class="pill-btn" onclick="AudioEngine.toggleMute()">🔊 Звук</button>
       <button class="pill-btn exam-btn" onclick="startOfficialExamMode()">⏱️ Билет (50+1)</button>
-      <button class="pill-btn" onclick="openTopicsModal()">📚 Темы</button>
       <button class="pill-btn" onclick="resetFullState()" style="color: var(--error-red);">🗑️ Сброс</button>
     </div>
   </header>
@@ -157,7 +156,7 @@
 
   <footer class="bottom-nav">
     <button class="nav-btn secondary" onclick="navigatePrevious()">⬅️ Назад</button>
-    <button class="nav-btn home-btn" onclick="restoreMainTestSession()">🏠 Все темы</button>
+    <button class="nav-btn home-btn" onclick="openTopicsModal()">🏠 Все темы</button>
     <button class="nav-btn secondary" onclick="triggerShuffleBlock()">🔀 Блок</button>
     <button class="nav-btn" onclick="navigateNext()">Вперёд ➡️</button>
   </footer>
@@ -266,7 +265,7 @@
       document.getElementById('exam-timer-display').style.display = "none";
       AppState = { ...DEFAULT_STATE };
       SavedProgressState = { totalAnswered: 0, correctCount: 0, errorIds: [] };
-      buildSessionQueue();
+      buildSessionQueue(null, true);
       syncStateToStorage();
       renderCurrentQuestion();
     }
@@ -328,7 +327,7 @@
           <p>🔹 Правильное решение задачи: <b style="color:var(--success-green);">${examScore.taskPoint}</b> из 5 б.</p>
           <p>🔹 Обоснование нормами права: <b style="color:var(--warning-amber);">${examScore.argPoints}</b> из 5 б.</p>
         </div>
-        <button class="nav-btn home-btn" style="width: 100%; padding:14px;" onclick="isExamMode=false; buildSessionQueue(); renderCurrentQuestion();">Вернуться к тренировке</button>
+        <button class="nav-btn home-btn" style="width: 100%; padding:14px;" onclick="isExamMode=false; buildSessionQueue(null, true); renderCurrentQuestion();">Вернуться к тренировке</button>
       </div>
     `;
     isExamMode = false;
@@ -340,6 +339,7 @@
     if (el) el.innerText = `Начислено: ${points} б.`;
   }
 
+  // Устойчивый парсер для тегов тем и вопросов
   function parseTextData(fullText) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     let parsedData = [];
@@ -349,10 +349,11 @@
     let localQCounter = 0;
 
     lines.forEach((line) => {
-      if (line.startsWith('<Tema №>:')) {
+      let cleanLineNoSpaces = line.replace(/\s+/g, '').toLowerCase();
+      if (cleanLineNoSpaces.includes('<tema№>')) {
         currentTemaNum = line.replace(/^<[^>]+>:\s*/, '').trim();
         localQCounter = 0;
-      } else if (line.startsWith('<Tema>:')) {
+      } else if (cleanLineNoSpaces.includes('<tema>:')) {
         currentTemaTitle = line.replace(/^<[^>]+>:\s*/, '').trim();
       } else if (line.startsWith('<Вопрос №>') || line.startsWith('<Вопрос>:')) {
         if (currentQ && currentQ.options.length > 0) {
@@ -458,11 +459,10 @@
   }
 
   function finishInitialization() {
-    buildSessionQueue();
+    buildSessionQueue(null, true);
     renderCurrentQuestion();
   }
 
-  // Параметр shuffle теперь позволяет запускать тему строго по порядку (false) или вразброс (true)
   function buildSessionQueue(filterTopic = null, shuffle = true) {
     let tests = filterTopic ? RAW_EXCEL_TESTS.filter(q => q.topic === filterTopic) : [...RAW_EXCEL_TESTS];
 
@@ -474,11 +474,6 @@
     
     AppState.currentIndex = 0;
     syncStateToStorage();
-  }
-
-  function restoreMainTestSession() {
-    buildSessionQueue(null, true);
-    renderCurrentQuestion();
   }
 
   function startErrorReviewSession() {
@@ -633,19 +628,27 @@
     navigateNext();
   }
 
-  // Обновленное модальное окно тем с выбором режима: По порядку или Вразброс
   function openTopicsModal() {
     const topicsMap = {};
     RAW_EXCEL_TESTS.forEach(q => { if (!topicsMap[q.topic]) topicsMap[q.topic] = 0; topicsMap[q.topic]++; });
 
     const container = document.getElementById('topics-list-container');
-    let html = '';
+    let html = `
+      <div class="topic-card" style="border-color: var(--accent-cyan);">
+        <div style="font-weight: 800; font-size: 0.95em; color: var(--accent-cyan);">🌐 Вся база (Все темы вместе)</div>
+        <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 2px;">Всего доступно вопросов: ${RAW_EXCEL_TESTS.length}</div>
+        <div style="display: flex; gap: 6px; margin-top: 8px;">
+          <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock(null, false)">📋 По порядку</button>
+          <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock(null, true)">🔀 Вразброс</button>
+        </div>
+      </div>
+    `;
 
     for (let t in topicsMap) {
       let escapedTopic = t.replace(/'/g, "\\'");
       html += `
         <div class="topic-card">
-          <div style="font-weight: 700; font-size: 0.9em; color: var(--accent-cyan);">${t}</div>
+          <div style="font-weight: 700; font-size: 0.9em; color: var(--text-main);">${t}</div>
           <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 2px;">Доступно вопросов: ${topicsMap[t]}</div>
           <div style="display: flex; gap: 6px; margin-top: 6px;">
             <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock('${escapedTopic}', false)">📋 По порядку</button>
