@@ -85,11 +85,18 @@
     }
 
     .meta-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 8px; }
+    
+    /* Стили для кликабельного бейджа темы с возможностью полного раскрытия */
     .topic-badge { 
       background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); 
-      color: #93c5fd; padding: 3px 8px; border-radius: 6px; font-size: 0.72em; font-weight: 700; 
+      color: #93c5fd; padding: 4px 10px; border-radius: 6px; font-size: 0.75em; font-weight: 700; 
+      cursor: pointer; transition: all 0.2s ease;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
     }
+    .topic-badge.expanded {
+      white-space: normal; overflow: visible; word-break: break-word; flex: unset; width: 100%;
+    }
+
     .counter-badge { font-size: 0.75em; color: var(--text-muted); font-weight: 700; flex-shrink: 0; }
 
     .question-text { font-size: 0.95em; font-weight: 700; line-height: 1.35; color: #ffffff; margin-bottom: 12px; white-space: pre-line; }
@@ -149,7 +156,8 @@
 
   <article class="quiz-card" id="quiz-card-element">
     <div class="meta-bar">
-      <span class="topic-badge" id="ui-topic-tag" title="Тема и номер">📌 Загрузка...</span>
+      <!-- Кликабельный бейдж темы для разворачивания полного текста на iPhone -->
+      <span class="topic-badge" id="ui-topic-tag" onclick="toggleTopicBadgeExpand()" title="Нажмите, чтобы развернуть тему">📌 Загрузка...</span>
       <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
         <button id="fav-toggle-btn" class="pill-btn" onclick="toggleCurrentFavorite()" style="padding: 2px 6px; font-size: 0.9em;">☆</button>
         <span class="counter-badge" id="ui-question-counter">0 / 0</span>
@@ -440,7 +448,6 @@
     let currentTopicNum = 1;
 
     lines.forEach((line) => {
-      // Точный парсинг заголовков тем из документа (например: "<Тема №>: 1", "<Тема>: Правовые основы...")
       if (line.startsWith('<Тема №>:')) {
         const parts = line.replace('<Тема №>:', '').trim().split('\t');
         if (parts.length > 0 && !isNaN(parts[0])) {
@@ -468,7 +475,6 @@
         if (numMatch && numMatch[1]) {
           qNumInFile = parseInt(numMatch[1], 10);
         } else {
-          // Автономный счетчик в рамках темы, если номер не распарсился
           qNumInFile = parsedData.filter(q => q.topicNum === currentTopicNum).length + 1;
         }
 
@@ -595,7 +601,7 @@
       if (currentOrderMode === 'random') {
         AppState.sessionQueue = [...tests].sort(() => Math.random() - 0.5);
       } else {
-        AppState.sessionQueue = [...tests]; // Строго по порядку
+        AppState.sessionQueue = [...tests];
       }
     } else {
       AppState.sessionQueue = [{ id: 0, originalIndex: 1, topic: "Тема №1", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
@@ -612,7 +618,6 @@
 
     const q = AppState.sessionQueue[AppState.currentIndex];
     
-    // Четкий вывод темы и локального номера вопроса
     const topicName = q.topic || "Тема №1";
     const qNum = q.originalIndex ? q.originalIndex : 1;
     const badgeText = `📌 ${topicName} • Вопр. №${qNum}`;
@@ -620,6 +625,7 @@
     const topicBadgeEl = document.getElementById('ui-topic-tag');
     topicBadgeEl.innerText = badgeText;
     topicBadgeEl.title = badgeText;
+    topicBadgeEl.classList.remove('expanded'); // Сбрасываем развертывание при смене вопроса
 
     document.getElementById('ui-question-counter').innerText = `${AppState.currentIndex + 1} / ${AppState.sessionQueue.length}`;
     
@@ -662,6 +668,14 @@
     
     document.getElementById('quiz-card-element').scrollTop = 0;
     renderDashboardUI();
+  }
+
+  // Функция для разворачивания/сворачивания полного текста темы по клику
+  function toggleTopicBadgeExpand() {
+    const el = document.getElementById('ui-topic-tag');
+    if (el) {
+      el.classList.toggle('expanded');
+    }
   }
 
   function handleOptionSelect(selectedIdx, correctIdx, qId, btnElement) {
