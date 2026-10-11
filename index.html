@@ -83,9 +83,9 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    .meta-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
-    .topic-badge { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; padding: 3px 8px; border-radius: 6px; font-size: 0.7em; font-weight: 700; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .counter-badge { font-size: 0.75em; color: var(--text-muted); font-weight: 700; }
+    .meta-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 6px; }
+    .topic-badge { background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; padding: 3px 8px; border-radius: 6px; font-size: 0.7em; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .counter-badge { font-size: 0.75em; color: var(--text-muted); font-weight: 700; flex-shrink: 0; }
 
     .question-text { font-size: 0.95em; font-weight: 700; line-height: 1.35; color: #ffffff; margin-bottom: 12px; white-space: pre-line; }
     .answers-container { display: flex; flex-direction: column; gap: 6px; }
@@ -227,7 +227,6 @@
 
   let isTransitioning = false; 
 
-  // Честный алгоритм перемешивания Фишера — Йетса (устраняет предвзятость .sort())
   function shuffleArray(array) {
     let arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -341,17 +340,18 @@
     if (el) el.innerText = `Начислено: ${points} б.`;
   }
 
-  // Обновленный парсер с поддержкой реальных тем (<Tema №>: и <Tema>:) и обоснований
   function parseTextData(fullText) {
     const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
     let parsedData = [];
     let currentQ = null;
     let currentTemaNum = "";
     let currentTemaTitle = "";
+    let localQCounter = 0;
 
     lines.forEach((line) => {
       if (line.startsWith('<Tema №>:')) {
         currentTemaNum = line.replace(/^<[^>]+>:\s*/, '').trim();
+        localQCounter = 0;
       } else if (line.startsWith('<Tema>:')) {
         currentTemaTitle = line.replace(/^<[^>]+>:\s*/, '').trim();
       } else if (line.startsWith('<Вопрос №>') || line.startsWith('<Вопрос>:')) {
@@ -359,12 +359,17 @@
           parsedData.push(currentQ);
         }
         const text = line.replace(/^<[^>]+>:\s*/, '');
+        localQCounter++;
+        
         let topicName = currentTemaNum ? `Тема №${currentTemaNum}` : "Общая база";
         if (currentTemaTitle) {
           topicName += `: ${currentTemaTitle}`;
         }
+        
         currentQ = { 
           id: 1000 + parsedData.length,
+          temaNum: currentTemaNum || "1",
+          questionNum: localQCounter,
           topic: topicName,
           title: text, 
           question: text,
@@ -457,11 +462,12 @@
     renderCurrentQuestion();
   }
 
-  function buildSessionQueue(filterTopic = null) {
+  // Параметр shuffle теперь позволяет запускать тему строго по порядку (false) или вразброс (true)
+  function buildSessionQueue(filterTopic = null, shuffle = true) {
     let tests = filterTopic ? RAW_EXCEL_TESTS.filter(q => q.topic === filterTopic) : [...RAW_EXCEL_TESTS];
 
     if (tests.length > 0) {
-      AppState.sessionQueue = shuffleArray(tests);
+      AppState.sessionQueue = shuffle ? shuffleArray(tests) : [...tests];
     } else {
       AppState.sessionQueue = [{ id: 0, topic: "Инфо", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
     }
@@ -471,7 +477,7 @@
   }
 
   function restoreMainTestSession() {
-    buildSessionQueue();
+    buildSessionQueue(null, true);
     renderCurrentQuestion();
   }
 
@@ -489,7 +495,13 @@
     if (AppState.currentIndex >= AppState.sessionQueue.length) AppState.currentIndex = 0;
 
     const q = AppState.sessionQueue[AppState.currentIndex];
-    document.getElementById('ui-topic-tag').innerText = q.topic || "Раздел";
+    
+    let badgeText = q.topic || "Раздел";
+    if (q.temaNum && q.questionNum && !q.topic.startsWith('⏱️') && !q.topic.startsWith('❌')) {
+      badgeText = `📌 Тема №${q.temaNum} • Вопр. №${q.questionNum}`;
+    }
+    
+    document.getElementById('ui-topic-tag').innerText = badgeText;
     document.getElementById('ui-question-counter').innerText = `${AppState.currentIndex + 1} / ${AppState.sessionQueue.length}`;
     
     const root = document.getElementById('dynamic-content-root');
@@ -550,6 +562,12 @@
         GlobalMasteredIds.push(qId);
       }
 
+      // Автоматически удаляем вопрос из ошибок при правильном ответе
+      const errIndex = AppState.errorIds.indexOf(qId);
+      if (errIndex > -1) {
+        AppState.errorIds.splice(errIndex, 1);
+      }
+
       if (isExamMode) {
         const item = AppState.sessionQueue[AppState.currentIndex];
         if (item && item.isTaskItem) {
@@ -590,7 +608,7 @@
     renderCurrentQuestion();
   }
 
-  function triggerShuffleBlock() { buildSessionQueue(); renderCurrentQuestion(); }
+  function triggerShuffleBlock() { buildSessionQueue(null, true); renderCurrentQuestion(); }
 
   function renderDashboardUI() {
     document.getElementById('ui-answered-count').innerText = AppState.totalAnswered;
@@ -615,6 +633,7 @@
     navigateNext();
   }
 
+  // Обновленное модальное окно тем с выбором режима: По порядку или Вразброс
   function openTopicsModal() {
     const topicsMap = {};
     RAW_EXCEL_TESTS.forEach(q => { if (!topicsMap[q.topic]) topicsMap[q.topic] = 0; topicsMap[q.topic]++; });
@@ -623,11 +642,15 @@
     let html = '';
 
     for (let t in topicsMap) {
+      let escapedTopic = t.replace(/'/g, "\\'");
       html += `
         <div class="topic-card">
           <div style="font-weight: 700; font-size: 0.9em; color: var(--accent-cyan);">${t}</div>
           <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 2px;">Доступно вопросов: ${topicsMap[t]}</div>
-          <button class="block-btn" onclick="selectTopicBlock('${t.replace(/'/g, "\\'")}')" style="width: 100%; margin-top:6px;">Запустить раздел</button>
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock('${escapedTopic}', false)">📋 По порядку</button>
+            <button class="block-btn" style="flex: 1;" onclick="selectTopicBlock('${escapedTopic}', true)">🔀 Вразброс</button>
+          </div>
         </div>
       `;
     }
@@ -636,7 +659,7 @@
   }
 
   function closeTopicsModal() { document.getElementById('topics-modal').style.display = 'none'; }
-  function selectTopicBlock(t) { buildSessionQueue(t); renderCurrentQuestion(); closeTopicsModal(); }
+  function selectTopicBlock(t, shuffle) { buildSessionQueue(t, shuffle); renderCurrentQuestion(); closeTopicsModal(); }
 
   window.onload = loadReadmeAndInit;
 </script>
