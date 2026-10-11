@@ -113,11 +113,6 @@
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 19, 41, 0.96); backdrop-filter: blur(10px); z-index: 100; display: none; flex-direction: column; padding: 16px; overflow-y: auto; }
     .topic-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
     .block-btn { background: #1e293b; border: 1px solid var(--border-color); color: var(--accent-cyan); padding: 8px; border-radius: 8px; text-align: center; font-size: 0.8em; font-weight: 700; cursor: pointer; }
-
-    .result-screen { text-align: center; padding: 20px 10px; }
-    .verdict-badge { display: inline-block; padding: 12px 34px; border-radius: 20px; font-size: 1.6em; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; }
-    .verdict-badge.passed { background: var(--success-green); color: white; box-shadow: 0 0 15px rgba(16,185,129,0.4); }
-    .verdict-badge.failed { background: var(--error-red); color: white; box-shadow: 0 0 15px rgba(239,68,68,0.4); }
   </style>
 </head>
 <body>
@@ -161,10 +156,28 @@
 
   <footer class="bottom-nav">
     <button class="nav-btn secondary" onclick="navigatePrevious()">⬅️ Назад</button>
-    <button class="nav-btn home-btn" onclick="restoreMainTestSession()">🏠 Все темы</button>
+    <button class="nav-btn home-btn" onclick="openModeSelectModal()">🏠 Все темы</button>
     <button class="nav-btn secondary" onclick="triggerShuffleBlock()">🔀 Блок</button>
     <button class="nav-btn" onclick="navigateNext()">Вперёд ➡️</button>
   </footer>
+</div>
+
+<!-- Модальное окно выбора режима (По порядку / Вразброс) при нажатии на «Все темы» -->
+<div class="modal-overlay" id="mode-select-modal">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; position: sticky; top: 0; background: var(--bg-color); padding: 8px 0; z-index: 10;">
+    <h2 style="margin: 0; font-size: 1.1em; color: var(--accent-cyan);">🏠 Выбор режима обучения</h2>
+    <button class="pill-btn" onclick="closeModeSelectModal()" style="background: var(--accent-blue); padding: 8px 14px;">Закрыть</button>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div class="topic-card" onclick="setSessionMode('sequential')" style="cursor: pointer;">
+      <div style="font-weight: 700; font-size: 1em; color: var(--accent-cyan);">🔢 По порядку (1, 2, 3...)</div>
+      <div style="font-size: 0.8em; color: var(--text-muted); margin-top: 4px;">Прохождение всех вопросов строго друг за другом в исходном порядке.</div>
+    </div>
+    <div class="topic-card" onclick="setSessionMode('random')" style="cursor: pointer;">
+      <div style="font-weight: 700; font-size: 1em; color: var(--success-green);">🔀 Вразброс (Случайно / Рандомно)</div>
+      <div style="font-size: 0.8em; color: var(--text-muted); margin-top: 4px;">Случайная генерация последовательности вопросов для проверки знаний.</div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="topics-modal">
@@ -230,6 +243,7 @@
   };
 
   let isTransitioning = false; 
+  let currentOrderMode = 'random'; // По умолчанию рандом или sequential
 
   function generateLegalBasis(qText, explicitExplanation = "") {
     if (explicitExplanation && explicitExplanation.length > 5) {
@@ -282,6 +296,20 @@
       syncStateToStorage();
       renderCurrentQuestion();
     }
+  }
+
+  function openModeSelectModal() {
+    document.getElementById('mode-select-modal').style.display = 'flex';
+  }
+  function closeModeSelectModal() {
+    document.getElementById('mode-select-modal').style.display = 'none';
+  }
+
+  function setSessionMode(mode) {
+    currentOrderMode = mode;
+    closeModeSelectModal();
+    buildSessionQueue();
+    renderCurrentQuestion();
   }
 
   function startOfficialExamMode() {
@@ -386,7 +414,6 @@
         }
       } else if (/^<\d+>:/.test(line)) {
         let optText = line.replace(/^<\d+>:\s*/, '');
-        // Проверяем, не содержит ли вариант ответа встроенное обоснование
         if (optText.toLowerCase().includes('обоснование') || optText.startsWith('Обоснование')) {
           explicitExplanation += (explicitExplanation ? " " : "") + optText;
         } else if (currentQ) {
@@ -421,7 +448,6 @@
       parsedData.push(currentQ);
     }
 
-    // Финальная проверка всех вопросов на наличие слова "Обоснование" в вариантах ответов
     parsedData.forEach(q => {
       if (!q.legalBasis || q.legalBasis.logic.includes("Материал квалификационного теста")) {
         q.options = q.options.filter(opt => {
@@ -490,18 +516,17 @@
     let tests = filterTopic ? RAW_EXCEL_TESTS.filter(q => q.topic === filterTopic) : [...RAW_EXCEL_TESTS];
 
     if (tests.length > 0) {
-      AppState.sessionQueue = tests.sort(() => Math.random() - 0.5);
+      if (currentOrderMode === 'random') {
+        AppState.sessionQueue = tests.sort(() => Math.random() - 0.5);
+      } else {
+        AppState.sessionQueue = tests; // Строго по порядку (1, 2, 3...)
+      }
     } else {
       AppState.sessionQueue = [{ id: 0, topic: "Инфо", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
     }
     
     AppState.currentIndex = 0;
     syncStateToStorage();
-  }
-
-  function restoreMainTestSession() {
-    buildSessionQueue();
-    renderCurrentQuestion();
   }
 
   function startErrorReviewSession() {
