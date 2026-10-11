@@ -26,7 +26,7 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
-      width: 100%; height: 100%; margin: 0; padding: 0;
+      width: 100%; height: 100dvh; margin: 0; padding: 0;
       background-color: var(--bg-color); color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, sans-serif;
       overflow: hidden;
@@ -34,9 +34,9 @@
     }
 
     #app-container {
-      display: flex; flex-direction: column; width: 100%; height: 100vh;
+      display: flex; flex-direction: column; width: 100%; height: 100dvh;
       padding-top: max(6px, env(safe-area-inset-top));
-      padding-bottom: 6px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
       padding-left: 8px;
       padding-right: 8px;
     }
