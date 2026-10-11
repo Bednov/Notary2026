@@ -445,6 +445,7 @@
         explicitExplanation = "";
         currentQ = { 
           id: 1000 + parsedData.length,
+          originalIndex: parsedData.length + 1,
           topic: "Основная база (README)",
           title: text, 
           question: text,
@@ -496,6 +497,7 @@
     }
 
     parsedData.forEach(q => {
+      if (!q.originalIndex) q.originalIndex = parsedData.indexOf(q) + 1;
       if (!q.legalBasis || q.legalBasis.logic.includes("Материал квалификационного теста")) {
         q.options = q.options.filter(opt => {
           if (opt.toLowerCase().includes('обоснование') || opt.startsWith('Обоснование')) {
@@ -562,12 +564,12 @@
 
     if (tests.length > 0) {
       if (currentOrderMode === 'random') {
-        AppState.sessionQueue = tests.sort(() => Math.random() - 0.5);
+        AppState.sessionQueue = [...tests].sort(() => Math.random() - 0.5);
       } else {
-        AppState.sessionQueue = tests; // Строго по порядку (1, 2, 3...)
+        AppState.sessionQueue = [...tests]; // Строго по порядку (1, 2, 3...)
       }
     } else {
-      AppState.sessionQueue = [{ id: 0, topic: "Инфо", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
+      AppState.sessionQueue = [{ id: 0, originalIndex: 1, topic: "Инфо", question: "В базе данных нет вопросов.", options: ["Ок"], correct: 0, legalBasis: {rule: "-", logic: "-"} }];
     }
     
     AppState.currentIndex = 0;
@@ -580,7 +582,12 @@
     if (AppState.currentIndex >= AppState.sessionQueue.length) AppState.currentIndex = 0;
 
     const q = AppState.sessionQueue[AppState.currentIndex];
-    document.getElementById('ui-topic-tag').innerText = q.topic || "Раздел";
+    
+    // Возвращено отображение темы и точного номера в файле
+    const topicLabel = q.topic || "Раздел";
+    const fileNum = q.originalIndex ? `№${q.originalIndex}` : `#${AppState.currentIndex + 1}`;
+    document.getElementById('ui-topic-tag').innerText = `📌 ${topicLabel} (${fileNum})`;
+    
     document.getElementById('ui-question-counter').innerText = `${AppState.currentIndex + 1} / ${AppState.sessionQueue.length}`;
     
     updateFavoriteButtonState();
@@ -641,7 +648,6 @@
       
       if (!GlobalMasteredIds.includes(qId)) GlobalMasteredIds.push(qId);
       
-      // Автоматическое удаление ошибки при правильном ответе
       const errIdx = AppState.errorIds.indexOf(qId);
       if (errIdx > -1) AppState.errorIds.splice(errIdx, 1);
 
@@ -756,10 +762,10 @@
     const container = document.getElementById('topics-list-container');
     let html = `<div style="font-size: 0.8em; color: var(--accent-cyan); margin-bottom:8px;">Найдено вопросов: ${matched.length}</div>`;
     
-    matched.slice(0, 30).forEach((q, idx) => {
+    matched.slice(0, 30).forEach((q) => {
       html += `
         <div class="topic-card" onclick="startFilteredQuestion(${q.id})" style="cursor:pointer;">
-          <div style="font-size: 0.7em; color: var(--text-muted);">№${idx+1} | ${q.topic}</div>
+          <div style="font-size: 0.7em; color: var(--text-muted);">№${q.originalIndex} | ${q.topic}</div>
           <div style="font-weight: 600; font-size: 0.82em; color: #fff; margin-top: 2px;">${q.question.substring(0, 90)}...</div>
         </div>
       `;
